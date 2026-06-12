@@ -61,6 +61,21 @@ def add_no_cache(response):
     return response
 
 
+@app.route("/api/health")
+def api_health():
+    """환경변수 설정 상태 점검 (값은 노출하지 않음)."""
+    import os
+    def check(name):
+        v = os.getenv(name, "")
+        return {"set": bool(v), "length": len(v)}
+    return jsonify({
+        "ANTHROPIC_API_KEY": check("ANTHROPIC_API_KEY"),
+        "GOOGLE_SHEETS_CREDENTIALS_JSON": check("GOOGLE_SHEETS_CREDENTIALS_JSON"),
+        "GOOGLE_SHEET_ID": check("GOOGLE_SHEET_ID"),
+        "UNSPLASH_ACCESS_KEY": check("UNSPLASH_ACCESS_KEY"),
+    })
+
+
 @app.route("/")
 def index():
     levels = [{"value": lv.value, "label": lv.value.upper()} for lv in Level]
