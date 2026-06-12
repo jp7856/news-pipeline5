@@ -130,6 +130,7 @@ class ReviewResult:
     passed: bool
     status: ArticleStatus   # APPROVED 또는 REJECTED
     notes: str = ""         # 판단 이유
+    fix_targets: list = field(default_factory=list)  # 거부 시 재작성 대상: article/translation/crossword/workbook
 
 
 @dataclass

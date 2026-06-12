@@ -20,7 +20,8 @@ Generate → [Phase 1] SourceFinder(웹검색, 도메인 화이트리스트)
          → Writer → Plagiarism (실패 시 실패 항목 피드백으로 최대 3회 재작성)
          → 초안 미리보기 + 대화형 AI 수정/질문 (Reviser 채팅, 수정 시 표절 재검사)
          → [이후 작업 진행] → [Phase 2] Editor(자동반영) → Crossword + Workbook
-         → Translator → ImageFinder → Worksheet(시트 저장) → Reviewer(검수)
+         → Translator → ImageFinder → Reviewer(검수, 거부 시 fix_targets만 재작성 후 재검수 최대 2회)
+         → Worksheet(시트 저장 — 통과 '작성완료' / 최종 거부 '검수거부' / 검수 실패 '검수오류')
          → [발행하기] → 시트 상태 '발행완료' → /api/published → 발행 사이트 노출
 중단: Running 배지 클릭 (단계 사이 PipelineCancelled)
 ```
@@ -75,14 +76,17 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼
 
 ## v4 후보 과제 (v3에서 이월)
 
-- [ ] 검수 거부 시 자동 재작성 루프
-- [ ] 시트 저장 순서 (현재: 저장 → 검수, 거부돼도 저장됨)
+- [x] 검수 거부 시 자동 재작성 + 시트 저장 순서 — 검수가 저장보다 먼저 실행되도록 변경.
+      Reviewer가 거부 시 fix_targets(article/translation/crossword/workbook) 반환,
+      대상만 재생성(기사 수정 시 표절 재검사 + 번역 자동 갱신) 후 재검수 최대 2회.
+      최종 거부돼도 저장은 하되 상태 '검수거부'로 구분 (검수 API 오류는 '검수오류').
+      테스트: tests/test_review_loop.py (2026-06-12)
 - [ ] 배치 생성 (여러 기사 동시)
-- [x] 누적 사용액 표시 — 시트 17번째 '비용(원)' 컬럼(Q열), 검수 후 최종 비용으로 갱신,
+- [x] 누적 사용액 표시 — 시트 17번째 '비용(원)' 컬럼(Q열), 저장 시점(=검수 후, 최종) 비용 기록,
       /api/usage, 헤더 누적 배지, 히스토리 건별 비용. 구버전 행은 비용 미기록(0원 집계).
       v3는 A~P만 사용하므로 공유 시트 호환 (2026-06-12)
 - [ ] 발행 사이트 API_BASE를 v4로 전환
 - [ ] "가장 어려운 단계" — 사용자가 정의 예정
 
 ---
-마지막 수정: 2026-06-12 (누적 사용액 완료)
+마지막 수정: 2026-06-12 (누적 사용액 + 검수 재작성 루프·저장 순서 완료)

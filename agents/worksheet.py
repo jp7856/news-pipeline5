@@ -9,7 +9,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 from config import GOOGLE_SHEETS_CREDENTIALS_JSON, GOOGLE_SHEET_ID
-from models import ContentPackage
+from models import ArticleStatus, ContentPackage
 
 logger = logging.getLogger(__name__)
 
@@ -66,15 +66,6 @@ class WorksheetAgent:
         except Exception as e:
             self._log(f"[Publish] 발행 처리 오류: {e}")
             return False
-
-    def update_cost(self, row: int, cost_krw: int) -> None:
-        """해당 행의 비용 컬럼을 최종 비용으로 갱신한다 (검수 단계 비용 포함)."""
-        try:
-            sheet = self._get_sheet()
-            sheet.update_cell(row, COST_COL, cost_krw)
-            self._log(f"[Agent4] 비용 기록: {cost_krw:,}원 ({row}행)")
-        except Exception as e:
-            self._log(f"[Agent4] 비용 기록 오류 (무시): {e}")
 
     @staticmethod
     def _parse_row_number(append_response) -> int | None:
@@ -153,7 +144,10 @@ class WorksheetAgent:
                     ],
                     "image_url": row[11],
                     "sheet_url": sheet_url,
-                    "review": None,
+                    "review": (
+                        {"passed": False, "status": "검수거부", "notes": "시트 기록: 검수 거부"}
+                        if len(row) > 15 and row[15].startswith("검수거부") else None
+                    ),
                     "sheet_row": idx + 2,  # 헤더가 1행이므로 데이터는 2행부터
                     "published": len(row) > 15 and row[15].startswith("발행"),
                 }
@@ -221,6 +215,15 @@ class WorksheetAgent:
             crossword,
             wb1,
             wb2,
-            "작성완료",
+            self._status_label(pkg),
             cost_krw if cost_krw is not None else "",
         ]
+
+    @staticmethod
+    def _status_label(pkg: ContentPackage) -> str:
+        review = pkg.review_result
+        if review is None or review.passed:
+            return "작성완료"
+        if review.status == ArticleStatus.ERROR:
+            return "검수오류"  # 검수 자체가 실패한 경우 — 콘텐츠 품질 거부와 구분
+        return "검수거부"

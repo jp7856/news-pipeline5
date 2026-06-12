@@ -19,7 +19,7 @@ from agents.translator import TranslatorAgent
 from agents.image_finder import ImageFinderAgent
 from agents.worksheet import WorksheetAgent
 from agents.reviewer import ReviewerAgent
-from models import ContentPackage, Level, Section
+from models import ArticleStatus, ContentPackage, Level, Section
 
 logger = logging.getLogger(__name__)
 
@@ -107,22 +107,36 @@ class Orchestrator:
         image_finder = ImageFinderAgent(log_callback=self._log)
         package = image_finder.run(package)
 
-        # ── Agent 4: Google Sheets 저장 ───────────────────────────
-        self._check_cancel()
-        worksheet = WorksheetAgent(log_callback=self._log)
-        package, sheet_url = worksheet.run(package, cost_krw=usage_cost()["krw"])
-        self._sheet_url = sheet_url
-        self.sheet_row = worksheet.last_row  # 발행 시 상태 갱신용
-
-        # ── Agent 5: 최종 검수 ────────────────────────────────────
+        # ── Agent 5: 최종 검수 (거부 시 자동 재작성, 최대 2회) ────
         self._check_cancel()
         reviewer = ReviewerAgent(log_callback=self._log)
         package = reviewer.run(package)
 
-        # 검수까지 포함한 최종 비용을 시트에 반영 (대시보드 누적 사용액 집계용)
+        max_retries = 2
+        attempt = 0
+        while (
+            package.review_result is not None
+            and not package.review_result.passed
+            and package.review_result.status == ArticleStatus.REJECTED  # 검수 오류는 재작성 대상 아님
+            and attempt < max_retries
+        ):
+            attempt += 1
+            self._check_cancel()
+            package = self._fix_rejected(package, producer, translator, attempt, max_retries)
+            self._check_cancel()
+            package = reviewer.run(package)
+
+        review = package.review_result
+        if review is not None and not review.passed and attempt >= max_retries:
+            self._log(f"[Phase2] 재작성 {max_retries}회 후에도 검수 거부 — '검수거부' 상태로 저장합니다")
+
+        # ── Agent 4: Google Sheets 저장 (검수 결과 반영) ──────────
+        self._check_cancel()
         self.cost_krw = usage_cost()["krw"]
-        if self.sheet_row:
-            worksheet.update_cost(self.sheet_row, self.cost_krw)
+        worksheet = WorksheetAgent(log_callback=self._log)
+        package, sheet_url = worksheet.run(package, cost_krw=self.cost_krw)
+        self._sheet_url = sheet_url
+        self.sheet_row = worksheet.last_row  # 발행 시 상태 갱신용
 
         # ── 결과 요약 ─────────────────────────────────────────────
         duration = (datetime.now() - (self._start or datetime.now())).seconds
@@ -143,6 +157,48 @@ class Orchestrator:
         self._log(f"    Cost       : {usage_summary()}")
 
         return package, self._sheet_url
+
+    # ------------------------------------------------------------------
+    # 검수 거부 시 재작성 — fix_targets에 해당하는 부분만 재생성
+    # ------------------------------------------------------------------
+    def _fix_rejected(
+        self, package: ContentPackage, producer, translator, attempt: int, max_retries: int
+    ) -> ContentPackage:
+        review = package.review_result
+        targets = list(review.fix_targets) if review.fix_targets else ["article"]
+        self._log(
+            f"[Phase2] 검수 거부 — 재작성 {attempt}/{max_retries}회 "
+            f"(대상: {', '.join(targets)} / 사유: {review.notes[:80]})"
+        )
+
+        if "article" in targets:
+            from agents.sub_agents.reviser import ReviserAgent
+            reviser = ReviserAgent(log_callback=self._log)
+            instruction = (
+                f"최종 검수에서 다음 사유로 거부되었습니다: {review.notes}\n"
+                f"이 문제가 해결되도록 기사를 수정해주세요. "
+                f"기사의 사실 관계와 출처, 레벨에 맞는 난이도는 유지하세요."
+            )
+            article, _reply, changed = reviser.run(
+                package.article, instruction, package.level,
+                plagiarism_report=package.plagiarism_report,
+            )
+            if changed:
+                package.article = article
+                package.plagiarism_report = producer._plagcheck.run(article)
+                if "translation" not in targets:
+                    targets.append("translation")  # 본문이 바뀌면 번역도 갱신
+
+        if "translation" in targets:
+            package = translator.run(package)
+
+        if "crossword" in targets:
+            package.crossword_sentences = producer._crossword.run(package.article)
+
+        if "workbook" in targets:
+            package.workbook_sets = producer._workbook.run(package.article, package.level)
+
+        return package
 
     # ------------------------------------------------------------------
     # 전체 한 번에 실행 (CLI 호환)

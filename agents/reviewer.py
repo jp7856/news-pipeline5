@@ -22,9 +22,11 @@ class ReviewerAgent:
         """ContentPackage를 검수하고 review_result를 채워 반환한다."""
         self._log("[Agent5] 최종 검수 시작")
         try:
-            passed, notes = self._review(package)
+            passed, notes, fix_targets = self._review(package)
             status = ArticleStatus.APPROVED if passed else ArticleStatus.REJECTED
-            package.review_result = ReviewResult(passed=passed, status=status, notes=notes)
+            package.review_result = ReviewResult(
+                passed=passed, status=status, notes=notes, fix_targets=fix_targets
+            )
             label = "승인" if passed else f"거부 ({notes[:60]})"
             self._log(f"[Agent5] {label}")
         except Exception as e:
@@ -39,7 +41,9 @@ class ReviewerAgent:
 
     # ------------------------------------------------------------------
 
-    def _review(self, pkg: ContentPackage) -> tuple[bool, str]:
+    FIX_TARGETS = ("article", "translation", "crossword", "workbook")
+
+    def _review(self, pkg: ContentPackage) -> tuple[bool, str, list]:
         article = pkg.article
         prompt = f"""아래 NE Times 교육용 기사 패키지를 검수해주세요.
 
@@ -69,8 +73,9 @@ class ReviewerAgent:
 5. 스팸/광고/부적절한 내용이 없는가?
 6. 토픽과 섹션이 잘 어울리는가? (다소 어색해도 교육적 가치가 있으면 통과)
 
-아래 JSON 형식으로만 응답하세요:
-{{"approved": true, "reason": "판단 이유를 한 줄로"}}"""
+아래 JSON 형식으로만 응답하세요. 거부(approved=false)인 경우 fix_targets에
+재작성이 필요한 부분을 골라 넣으세요 (선택지: "article", "translation", "crossword", "workbook"):
+{{"approved": true, "reason": "판단 이유를 한 줄로", "fix_targets": []}}"""
 
         message = self._client.messages.create(
             model=CLAUDE_MODEL,
@@ -83,4 +88,5 @@ class ReviewerAgent:
             raw = raw.split("```")[1].lstrip("json").strip()
 
         data = json.loads(raw)
-        return data.get("approved", False), data.get("reason", "")
+        fix_targets = [t for t in data.get("fix_targets", []) if t in self.FIX_TARGETS]
+        return data.get("approved", False), data.get("reason", ""), fix_targets
