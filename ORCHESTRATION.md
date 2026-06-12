@@ -71,6 +71,11 @@
 
 ## 3. 지침 마크다운 작성 규칙
 
+> **수치 기준**: 2026-06 실제 NE Times 4개 매체 발행 기사의 CEFR 분석.
+> 각 매체는 내부 L1~L3 서브레벨이 있으며 **생성 기본 타깃은 중간인 L2**입니다.
+> 매체 경계는 연속적(KIDS L3 ≈ JUNIOR L1, JUNIOR L3 ≈ TIMES L1)이므로
+> 각 지침은 자기 매체의 중앙을 노립니다. JUNIOR M은 분석 미포함 — placeholder.
+
 - 위치: `agents/guidelines/agent1_X_<level>.md` (위 표 참조)
 - **HTML 주석(`<!-- -->`)을 제외한 파일 본문 전체가 Writer 프롬프트에
   "Newspaper-specific writing guidelines"로 그대로 주입됩니다.**

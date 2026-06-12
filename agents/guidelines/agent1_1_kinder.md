@@ -1,9 +1,23 @@
 <!--
 에이전트 1-1 (KINDER) — NE Times Kinder 기사 작성 지침
-
-이 주석을 제외한 본문 전체가 Writer 프롬프트에 그대로 주입됩니다.
-아직 지침이 비어 있어 기본 프롬프트만 사용 중입니다.
-지침을 받으면 이 주석 아래에 본문으로 작성하세요. (작성 규칙: ORCHESTRATION.md 3절)
-
-기본 사양(LEVEL_CONFIG 기준): CEFR A1 이하 / 5~8세 / 80–120단어 / 3–4단락
+이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 3절)
+수치 기준: 2026-06 실제 발행 기사 CEFR 분석. 기본 타깃은 L2.
 -->
+
+NE Times Kinder measured level spec (from analysis of published articles):
+
+| Sub-level | Avg words | Avg sentence length (words) | CEFR |
+|---|---|---|---|
+| L1 | 46 | 4.8 | Pre-A1 |
+| L2 | 73 | 6.2 | A1 |
+
+Write at the L2 level by default:
+- About 60–85 words total, in 2–3 very short paragraphs.
+- Average sentence length about 6 words. Never exceed 9 words in a sentence.
+- One idea per sentence. Subject–verb–object order only.
+- Present tense almost exclusively; simple past only when the story requires it.
+- Highest-frequency basic vocabulary only (animals, family, food, colors, school).
+  No idioms, no phrasal verbs, no abstract words.
+- Difficulty must come from content, not language: even a science topic is told
+  with the simplest possible sentences.
+- Tone: warm, playful, direct address ("Look!", "Can you see...?") is welcome.

@@ -35,11 +35,14 @@ for lv, (label, fname) in expected.items():
     assert (GUIDELINES_DIR / fname).exists(), f"{fname} 파일 없음"
 print("labels & files OK")
 
-# 3) 지침 로딩 — 주석만 있는 placeholder는 빈 문자열(주입 안 함)
-agent = create_agent1(Level.JUNIOR)
-assert agent.AGENT_LABEL == "Agent1-3 JUNIOR"
-assert agent._guidelines == "", f"placeholder인데 지침이 로드됨: {agent._guidelines[:80]!r}"
-print("placeholder skip OK")
+# 3) 지침 로딩 — 실측 지침이 입고된 4개 매체는 로드, placeholder(JUNIOR M)는 빈 문자열
+for lv in (Level.KINDER, Level.KIDS, Level.JUNIOR, Level.TIMES):
+    agent = create_agent1(lv)
+    assert agent._guidelines, f"{lv.value} 지침이 비어 있음"
+    assert "Sub-level" in agent._guidelines and "<!--" not in agent._guidelines
+agent_m = create_agent1(Level.JUNIOR_M)
+assert agent_m._guidelines == "", "JUNIOR M은 placeholder여야 함"
+print("guideline content OK / placeholder skip OK")
 
 # 4) 지침 본문이 있으면 로드되고 주석은 제거됨
 test_md = GUIDELINES_DIR / "_test_tmp.md"

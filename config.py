@@ -38,42 +38,44 @@ concepts are explained in English, and being exposed to a variety of information
 # ------------------------------------------------------------------
 # 레벨별 신문 설정
 # ------------------------------------------------------------------
+# 수치 기준: 2026-06 실제 NE Times 4개 매체 CEFR 분석 (상세 표는 agents/guidelines/*.md).
+# 각 매체는 내부에 L1~L3 서브레벨이 있고, 생성 기본 타깃은 중간인 L2.
 LEVEL_CONFIG: dict[str, dict] = {
     "kinder": {
         "newspaper":        "NE Times Kinder",
-        "cefr":             "A1 or lower",
+        "cefr":             "A1 (media range Pre-A1 to A1)",
         "target":           "kindergarteners and early elementary school students (ages 5–8)",
-        "word_count_range": "80–120",
-        "paragraph_count":  "3–4",
+        "word_count_range": "60–85",
+        "paragraph_count":  "2–3",
     },
     "kids": {
         "newspaper":        "NE Times Kids",
-        "cefr":             "A2 / A1-A2",
+        "cefr":             "A2 (media range A1+ to A2+)",
         "target":           "elementary school students (ages 9–12)",
-        "word_count_range": "150–200",
-        "paragraph_count":  "4–5",
+        "word_count_range": "90–115",
+        "paragraph_count":  "3–4",
     },
     "junior": {
         "newspaper":        "NE Times Junior",
-        "cefr":             "A2 / A2-B1",
+        "cefr":             "early B1 (media range A2+ to B1)",
         "target":           "high elementary and low middle school students (ages 11–14)",
-        "word_count_range": "200–280",
-        "paragraph_count":  "5–6",
+        "word_count_range": "155–190",
+        "paragraph_count":  "4–5",
     },
     "times": {
         "newspaper":        "NE Times",
-        "cefr":             "B1 / B1-B2",
+        "cefr":             "B1+ (media range B1 to B2)",
         "target":           "high school students (ages 15–18)",
-        "word_count_range": "280–380",
-        "paragraph_count":  "6–7",
+        "word_count_range": "240–290",
+        "paragraph_count":  "5–6",
     },
-    # ⚠️ placeholder — junior 복사본. 에이전트 1-5 지침 입고 시 사양 확정 필요
+    # ⚠️ placeholder — junior 복사본. 실측 분석에 미포함, 에이전트 1-5 지침 입고 시 확정 필요
     "junior_m": {
         "newspaper":        "NE Times Junior M",
-        "cefr":             "A2 / A2-B1",
+        "cefr":             "early B1 (media range A2+ to B1)",
         "target":           "high elementary and low middle school students (ages 11–14)",
-        "word_count_range": "200–280",
-        "paragraph_count":  "5–6",
+        "word_count_range": "155–190",
+        "paragraph_count":  "4–5",
     },
 }
 

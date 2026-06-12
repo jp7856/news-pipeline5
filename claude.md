@@ -47,7 +47,7 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
 ORCHESTRATION.md           # 에이전트 구성·지침 작성 규칙의 단일 기준
 orchestrator.py            # run_phase1/run_phase2, PipelineCancelled
 agents/level_agents.py     # 에이전트 1-1(KINDER)~1-5(JUNIOR M) + create_agent1 팩토리
-agents/guidelines/         # 신문별 작성 지침 마크다운 (Writer 프롬프트에 주입, 현재 placeholder)
+agents/guidelines/         # 신문별 작성 지침 (Writer 프롬프트 주입) — 4개 매체 실측 CEFR 기준 입고, JUNIOR M만 placeholder
 agents/content_producer.py # 에이전트 1 공통 베이스 — produce_article(표절 3회 루프) / produce_extras
 agents/sub_agents/
   source_finder.py         # 웹 검색 출처 (BBC/Reuters 등은 크롤러 차단 — 넣으면 400)
