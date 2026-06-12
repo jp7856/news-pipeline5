@@ -1,6 +1,6 @@
 <!--
 에이전트 1-5 (JUNIOR M) — NE Times Junior M 기사 작성 지침
-이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 3절)
+이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 
 ⚠️ 아직 placeholder — 2026-06 실제 기사 CSV 분석은 KINDER/KIDS/JUNIOR/TIMES
 4개 매체분만 제공되어 JUNIOR M 데이터가 없습니다.

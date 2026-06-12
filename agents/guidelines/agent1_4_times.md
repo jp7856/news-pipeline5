@@ -1,6 +1,6 @@
 <!--
 에이전트 1-4 (TIMES) — NE Times 기사 작성 지침
-이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 3절)
+이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 근거: 2026-06 실제 발행 기사 CSV 분석 (1071호~, 산문 기사 67건, 각주 제외).
 수치는 평균이 아닌 실측 범위 — 기사는 반드시 범위 안에서 작성.
 실측 섹션: Nation / World / Briefs (L1), Headlines News / Key Issue / Lifestyle /

@@ -82,7 +82,14 @@ cfg, sub = WriterAgent._merge_config(Level.KINDER, "L3")  # 없는 서브레벨 
 assert sub == "L2" and cfg["cefr"] == "A1"
 print("sublevel config & merge OK")
 
-# 7) 시트 컬럼 — 서브레벨 컬럼 추가 후에도 상태·비용 위치 불변
+# 7) 워드카운트 범위 판정 (로그 사양 라인용)
+assert WriterAgent._word_count_in_range(170, "150–190") is True
+assert WriterAgent._word_count_in_range(149, "150–190") is False
+assert WriterAgent._word_count_in_range(191, "150–190") is False
+assert WriterAgent._word_count_in_range(100, "이상한값") is True  # 파싱 불가 시 경고 안 함
+print("word count range check OK")
+
+# 8) 시트 컬럼 — 서브레벨 컬럼 추가 후에도 상태·비용 위치 불변
 from agents.worksheet import SHEET_COLUMNS, STATUS_COL, COST_COL
 assert len(SHEET_COLUMNS) == 18 and SHEET_COLUMNS[17] == "서브레벨"
 assert STATUS_COL == 16 and COST_COL == 17

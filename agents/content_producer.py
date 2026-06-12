@@ -113,6 +113,12 @@ class ContentProducerAgent:
                 if not val.get("pass")
             )
             self._log(f"[{self.AGENT_LABEL}] 표절 위험 감지 — 재작성 {attempt}/{max_retries}회")
+            # 어느 부분이 걸렸는지 로그에 명시
+            for key, val in plagiarism_report.checklist.items():
+                if not val.get("pass"):
+                    self._log(f"[{self.AGENT_LABEL}]   ⤷ 걸린 항목: {key} — {val.get('note', '')[:120]}")
+            if plagiarism_report.notes:
+                self._log(f"[{self.AGENT_LABEL}]   ⤷ 비고: {plagiarism_report.notes[:120]}")
             revised_topic = (
                 f"{topic}\n\n"
                 f"[REVISION NOTE — attempt {attempt}] The previous version failed "

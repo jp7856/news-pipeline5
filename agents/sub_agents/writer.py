@@ -1,6 +1,7 @@
 """WriterAgent — 토픽을 받아 레벨에 맞는 NE Times 기사를 작성한다."""
 
 import logging
+import re
 from typing import Callable
 
 import anthropic
@@ -79,13 +80,19 @@ Paragraphs: {cfg['paragraph_count']} short paragraphs (1–3 sentences each, lik
 
 Instructions:
 1. Search your knowledge for accurate, up-to-date information on this topic.
-2. Write an article suitable for the readers' age and comprehension level.
-3. Include relevant vocabulary naturally in the text.
-4. Add one or two points that spark curiosity or deeper interest.
-5. Include background explanations where needed for younger readers.
-6. Write in a tone and style appropriate to {cfg['newspaper']}.
-7. At the end, list 3–5 key vocabulary words from the article.
-8. Do NOT invent or include any URLs — sources are managed separately.
+2. FACTS ONLY: every statement must be factually accurate. Never invent or
+   exaggerate facts, numbers, dates, names, quotes, or events. If a detail is
+   uncertain, leave it out — an article based on false information is forbidden.
+3. EDUCATIONAL NEUTRALITY: this is an educational newspaper for students.
+   Stay politically neutral and balanced — never take sides on partisan issues.
+   No sensational, violent, sexual, or fear-mongering content or framing.
+4. Write an article suitable for the readers' age and comprehension level.
+5. Include relevant vocabulary naturally in the text.
+6. Add one or two points that spark curiosity or deeper interest.
+7. Include background explanations where needed for younger readers.
+8. Write in a tone and style appropriate to {cfg['newspaper']}.
+9. At the end, list 3–5 key vocabulary words from the article.
+10. Do NOT invent or include any URLs — sources are managed separately.
 
 Respond in this exact JSON format:
 {{
@@ -115,7 +122,22 @@ CRITICAL JSON RULES:
             f"[Writer] 완료 — {result.word_count}단어 / "
             f"어휘 {len(result.vocabulary)}개 / 출처 {len(result.sources)}개"
         )
+        in_range = self._word_count_in_range(result.word_count, cfg["word_count_range"])
+        self._log(
+            f"[Writer] 사양 — {cfg['newspaper']} {sub_level} / CEFR {cfg['cefr']} / "
+            f"워드카운트 {result.word_count} (목표 {cfg['word_count_range']}"
+            f"{', 범위 내' if in_range else ' ⚠️ 범위 벗어남'})"
+        )
         return result
+
+    @staticmethod
+    def _word_count_in_range(count: int, range_str: str) -> bool:
+        """'150–190' 형식의 범위 문자열에 단어 수가 들어가는지 확인."""
+        try:
+            lo, hi = re.split(r"[–\-~]", range_str)
+            return int(lo) <= count <= int(hi)
+        except (ValueError, AttributeError):
+            return True  # 범위를 못 읽으면 경고하지 않음
 
     @staticmethod
     def _merge_config(level: Level, sub_level: str) -> tuple[dict, str]:
