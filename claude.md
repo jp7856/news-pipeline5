@@ -11,7 +11,7 @@
 - **v4 GitHub**: https://github.com/jp7856/news-pipeline4
 - **v4 Railway**: https://web-production-8adb9.up.railway.app
 - **v3 (동결, 태그 v3-final)**: https://github.com/jp7856/news-pipeline3 / https://web-production-d0e54.up.railway.app
-- **발행 사이트**: https://jp7856.github.io/ne-times-site/ (레포: jp7856/ne-times-site, API_BASE는 v3 주소 — v4로 전환 시 변경 필요)
+- **발행 사이트**: https://jp7856.github.io/ne-times-site/ (레포: jp7856/ne-times-site, API_BASE = v4 ✅)
 - 스택: Python 3.13, Flask + Flask-SocketIO, Claude Sonnet 4.6, Railway 자동 배포, GitHub Pages
 
 ## 파이프라인 흐름 (v4 시작 시점)
@@ -90,7 +90,8 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼
 - [x] 누적 사용액 표시 — 시트 17번째 '비용(원)' 컬럼(Q열), 저장 시점(=검수 후, 최종) 비용 기록,
       /api/usage, 헤더 누적 배지, 히스토리 건별 비용. 구버전 행은 비용 미기록(0원 집계).
       v3는 A~P만 사용하므로 공유 시트 호환 (2026-06-12)
-- [ ] 발행 사이트 API_BASE를 v4로 전환
+- [x] 발행 사이트 API_BASE를 v4로 전환 + Junior M 탭 (ne-times-site 4416c66, 2026-06-12)
+      — v3는 서버 시작 후 발행분이 반영 안 되던 문제도 함께 해소
 - [ ] "가장 어려운 단계" — 사용자가 정의 예정
 
 ---
