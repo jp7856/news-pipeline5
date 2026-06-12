@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Callable
 
 from agents import ContentProducerAgent
-from agents.level_agents import create_agent1
+from agents.level_agents import create_agent1, pick_sublevel
 from agents.translator import TranslatorAgent
 from agents.image_finder import ImageFinderAgent
 from agents.worksheet import WorksheetAgent
@@ -53,17 +53,24 @@ class Orchestrator:
         level: Level,
         section: Section,
         source_url: str = "",
-        sub_level: str = "L2",
+        sub_level: str = "",
     ) -> dict:
-        """기사 초안까지만 생성하고 상태를 반환한다. (이후 run_phase2로 완성)"""
+        """기사 초안까지만 생성하고 상태를 반환한다. (이후 run_phase2로 완성)
+
+        sub_level 미지정 시 매체 기준 레벨 범위 안에서 랜덤 배정한다.
+        (작성 중 로그에는 배정된 레벨을 노출하지 않음 — 시트·결과 화면에만 기록)
+        """
         from agents.sub_agents.usage_tracker import reset_usage
         reset_usage()
+
+        if not sub_level:
+            sub_level = pick_sublevel(level)
 
         run_id = str(uuid.uuid4())[:8]
         self._start = datetime.now()
         self._log(f"=== Pipeline Start (run_id: {run_id}) ===")
         self._log(f"    Topic   : {topic}")
-        self._log(f"    Level   : {level.value} {sub_level}")
+        self._log(f"    Level   : {level.value}")
         self._log(f"    Section : {section.value}")
         self._log("")
 
@@ -214,7 +221,7 @@ class Orchestrator:
         level: Level,
         section: Section,
         source_url: str = "",
-        sub_level: str = "L2",
+        sub_level: str = "",
     ) -> tuple[ContentPackage, str]:
         state = self.run_phase1(topic, level, section, source_url=source_url, sub_level=sub_level)
         return self.run_phase2(state)

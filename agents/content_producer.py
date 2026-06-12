@@ -65,7 +65,8 @@ class ContentProducerAgent:
 
         Returns: (article, plagiarism_report)
         """
-        self._log(f"[{self.AGENT_LABEL}] 콘텐츠 제작 시작 — [{level.value} {sub_level}/{section.value}] {topic[:60]}")
+        # 배정된 서브레벨은 작성 중 로그에 노출하지 않는다 (시트·결과 화면에만 기록)
+        self._log(f"[{self.AGENT_LABEL}] 콘텐츠 제작 시작 — [{level.value}/{section.value}] {topic[:60]}")
         if self._guidelines:
             self._log(f"[{self.AGENT_LABEL}] 작성 지침 적용 ({self.GUIDELINE_FILE}, {len(self._guidelines)}자)")
 

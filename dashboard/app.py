@@ -117,9 +117,9 @@ def api_run():
     level_str = data.get("level", "junior")
     section_str = data.get("section", "환경")
     source_url = data.get("source_url", "").strip()
-    sub_level = data.get("sub_level", DEFAULT_SUBLEVEL)
+    sub_level = data.get("sub_level", "")
     if sub_level not in ("L1", "L2", "L3"):
-        sub_level = DEFAULT_SUBLEVEL
+        sub_level = ""  # 미지정 → 매체 기준 레벨 범위 안에서 랜덤 배정
 
     if not topic and not source_url:
         return jsonify({"error": "Topic or source URL is required."}), 400
@@ -297,7 +297,7 @@ def _emit_log_for(sid: str):
     return emit_log
 
 
-def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url: str = "", sub_level: str = "L2"):
+def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url: str = "", sub_level: str = ""):
     """Phase 1 — 기사 초안 생성 후 미리보기 전송, 사용자 확인 대기."""
     try:
         orchestrator = Orchestrator(
@@ -319,7 +319,7 @@ def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url
             "topic": topic,
             "level": level.value,
             "section": section.value,
-            "sub_level": sub_level,
+            "sub_level": state.get("sub_level", ""),  # 랜덤 배정된 값
         }, to=sid)
     except PipelineCancelled:
         socketio.emit("log", {"message": "=== 사용자에 의해 중단됨 ==="}, to=sid)

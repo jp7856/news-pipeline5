@@ -82,6 +82,17 @@ cfg, sub = WriterAgent._merge_config(Level.KINDER, "L3")  # 없는 서브레벨 
 assert sub == "L2" and cfg["cefr"] == "A1"
 print("sublevel config & merge OK")
 
+# 6.5) 랜덤 레벨링 — 매체 기준 범위 안에서만 배정
+from agents.level_agents import pick_sublevel
+
+kinder_picks = {pick_sublevel(Level.KINDER) for _ in range(60)}
+assert kinder_picks <= {"L1", "L2"} and len(kinder_picks) == 2, kinder_picks
+kids_picks = {pick_sublevel(Level.KIDS) for _ in range(90)}
+assert kids_picks <= {"L1", "L2", "L3"} and len(kids_picks) == 3, kids_picks
+times_picks = {pick_sublevel(Level.TIMES) for _ in range(90)}
+assert times_picks <= {"L1", "L2", "L3"}, times_picks
+print("random sublevel OK")
+
 # 7) 워드카운트 범위 판정 (로그 사양 라인용)
 assert WriterAgent._word_count_in_range(170, "150–190") is True
 assert WriterAgent._word_count_in_range(149, "150–190") is False

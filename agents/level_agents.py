@@ -5,10 +5,22 @@
 구성 기준: ORCHESTRATION.md 2절.
 """
 
+import random
 from typing import Callable
 
+from config import SUBLEVEL_CONFIG
 from models import Level
 from agents.content_producer import ContentProducerAgent
+
+
+def pick_sublevel(level: Level) -> str:
+    """매체 기준에 맞는 레벨 범위 안에서 랜덤하게 서브레벨을 배정한다.
+
+    예: KINDER는 L1~L2, KIDS/JUNIOR/TIMES는 L1~L3 중 하나.
+    (ORCHESTRATION.md 3절 — 평균/고정값이 아닌 범위 내 작성 원칙)
+    """
+    keys = list(SUBLEVEL_CONFIG.get(level.value, {}).keys()) or ["L2"]
+    return random.choice(keys)
 
 
 class Agent1_1Kinder(ContentProducerAgent):

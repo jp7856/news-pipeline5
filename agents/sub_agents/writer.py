@@ -47,7 +47,8 @@ class WriterAgent:
         sub_level : 매체 내부 서브레벨 (L1/L2/L3 — SUBLEVEL_CONFIG가 사양을 덮어씀)
         """
         cfg, sub_level = self._merge_config(level, sub_level)
-        self._log(f"[Writer] 기사 작성 시작 — [{level.value} {sub_level}] {topic[:50]}")
+        # 배정된 서브레벨은 작성 중 로그에 노출하지 않는다
+        self._log(f"[Writer] 기사 작성 시작 — [{level.value}] {topic[:50]}")
         real_sources = real_sources or []
 
         source_hint = (
@@ -125,8 +126,9 @@ CRITICAL JSON RULES:
             f"어휘 {len(result.vocabulary)}개 / 출처 {len(result.sources)}개"
         )
         in_range = self._word_count_in_range(result.word_count, cfg["word_count_range"])
+        # 사양 로그 — 서브레벨은 노출하지 않음 (CEFR·워드카운트만)
         self._log(
-            f"[Writer] 사양 — {cfg['newspaper']} {sub_level} / CEFR {cfg['cefr']} / "
+            f"[Writer] 사양 — {cfg['newspaper']} / CEFR {cfg['cefr']} / "
             f"워드카운트 {result.word_count} (목표 {cfg['word_count_range']}"
             f"{', 범위 내' if in_range else ' ⚠️ 범위 벗어남'})"
         )
