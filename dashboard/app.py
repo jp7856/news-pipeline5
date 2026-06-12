@@ -180,6 +180,12 @@ def _run_revise(sid: str, instruction: str):
         state["article"] = article
         state["chat"].append({"user": instruction, "assistant": reply})
 
+        # 기사가 수정됐으면 표절 재검사 (경고 상태 갱신)
+        if changed:
+            producer = state.get("producer")
+            if producer is not None:
+                state["plagiarism_report"] = producer._plagcheck.run(article)
+
         socketio.emit("revise_done", {
             "reply": reply,
             "changed": changed,

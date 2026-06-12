@@ -91,14 +91,25 @@ class ContentProducerAgent:
         # ── Step 2: 표절 검사 ─────────────────────────────────────
         plagiarism_report = self._plagcheck.run(article)
 
-        if not plagiarism_report.passed:
+        # 통과할 때까지 재작성 (최대 3회) — 실패 항목을 구체적으로 피드백
+        max_retries = 3
+        attempt = 0
+        while not plagiarism_report.passed and attempt < max_retries:
+            attempt += 1
             self._cancel_check()
-            self._log("[Agent1] 표절 위험 감지 — 기사 재작성 시도")
+            failed_items = "\n".join(
+                f"- {key}: {val.get('note', '')}"
+                for key, val in plagiarism_report.checklist.items()
+                if not val.get("pass")
+            )
+            self._log(f"[Agent1] 표절 위험 감지 — 재작성 {attempt}/{max_retries}회")
             revised_topic = (
                 f"{topic}\n\n"
-                f"[REVISION NOTE] The previous version had plagiarism issues: "
-                f"{plagiarism_report.notes}. "
-                f"Please rewrite with stronger paraphrasing and structural originality."
+                f"[REVISION NOTE — attempt {attempt}] The previous version failed "
+                f"these plagiarism checks:\n{failed_items}\n"
+                f"Notes: {plagiarism_report.notes}\n"
+                f"Fix each failed item specifically. Use stronger paraphrasing, "
+                f"original sentence structure, and your own framing of the facts."
             )
             article = self._writer.run(
                 revised_topic, level, section,
@@ -107,6 +118,12 @@ class ContentProducerAgent:
                 real_sources=real_sources,
             )
             plagiarism_report = self._plagcheck.run(article)
+
+        if not plagiarism_report.passed:
+            self._log(
+                f"[Agent1] 재작성 {max_retries}회 후에도 표절 경고 잔류 — "
+                f"AI 수정 채팅으로 직접 수정하거나 새로 생성해주세요"
+            )
 
         return article, plagiarism_report
 
