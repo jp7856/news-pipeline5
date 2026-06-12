@@ -96,4 +96,39 @@ out = o._fix_rejected(pkg2, producer, translator, 1, 2)
 assert calls == {'plag': 2, 'translate': 2, 'crossword': 1, 'workbook': 1}, calls
 assert out.crossword_sentences == ['cw'] and out.workbook_sets == ['wb']
 print('fix_rejected dispatch OK')
+
+# 5) FactChecker — JSON 파싱·출처 없음 생략·이슈 시 불통과
+from agents.sub_agents.fact_checker import FactCheckerAgent
+
+fc = FactCheckerAgent.__new__(FactCheckerAgent)
+fc._log = lambda m: None
+fake_article = NS(text='The tower is 184 meters tall.')
+srcs = [{'title': 'Sky Bridge', 'snippet': 'observatory 184m', 'date': '2026-04'}]
+
+# 출처 없으면 점검 생략하고 통과
+ok, issues = fc.run(fake_article, [])
+assert ok is True and issues == []
+
+fc._client = NS(messages=FakeMsgs(json.dumps({'passed': True, 'issues': []})))
+ok, issues = fc.run(fake_article, srcs)
+assert ok is True and issues == []
+
+fc._client = NS(messages=FakeMsgs(json.dumps(
+    {'passed': False, 'issues': ['기사 수치 200m가 출처(184m)와 모순']})))
+ok, issues = fc.run(fake_article, srcs)
+assert ok is False and len(issues) == 1
+
+# passed=true인데 issues가 있으면 불통과 처리
+fc._client = NS(messages=FakeMsgs(json.dumps({'passed': True, 'issues': ['의심 항목']})))
+ok, issues = fc.run(fake_article, srcs)
+assert ok is False
+
+# API 오류 시 통과 처리 (파이프라인 계속)
+class BoomMsgs:
+    def create(self, **kw): raise RuntimeError('boom')
+fc._client = NS(messages=BoomMsgs())
+ok, issues = fc.run(fake_article, srcs)
+assert ok is True
+print('fact checker OK')
+
 print('ALL TESTS PASSED')

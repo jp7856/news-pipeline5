@@ -49,8 +49,10 @@ class ContentProducerAgent:
         self._guidelines = self._load_guidelines()
 
         # 서브에이전트 초기화 (클라이언트 공유)
+        from agents.sub_agents.fact_checker import FactCheckerAgent
         self._writer    = WriterAgent(self._client, log_callback=self._log)
         self._plagcheck = PlagiarismCheckerAgent(self._client, log_callback=self._log)
+        self._factcheck = FactCheckerAgent(self._client, log_callback=self._log)
         self._editor    = EditorAgent(self._client, log_callback=self._log)
         self._crossword = CrosswordAgent(self._client, log_callback=self._log)
         self._workbook  = WorkbookAgent(self._client, log_callback=self._log)
@@ -141,6 +143,39 @@ class ContentProducerAgent:
                 f"[{self.AGENT_LABEL}] 재작성 {max_retries}회 후에도 표절 경고 잔류 — "
                 f"AI 수정 채팅으로 직접 수정하거나 새로 생성해주세요"
             )
+
+        # ── Step 3: 사실 점검 — 출처 대조 (불일치 시 1회 재작성 + 표절 재검사) ──
+        self._cancel_check()
+        fact_passed, issues = self._factcheck.run(article, real_sources)
+        if not fact_passed:
+            for issue in issues:
+                self._log(f"[{self.AGENT_LABEL}]   ⤷ 사실 점검 지적: {issue[:150]}")
+            self._log(f"[{self.AGENT_LABEL}] 사실 점검 불일치 — 출처에 맞게 재작성 1회")
+            issues_block = "\n".join(f"- {i}" for i in issues)
+            fact_topic = (
+                f"{topic}\n\n"
+                f"[FACT-CHECK NOTE] The previous draft failed fact verification "
+                f"against the source articles:\n{issues_block}\n"
+                f"Rewrite the article so every claim is consistent with the sources. "
+                f"Remove or correct any numbers, dates, names, or quotes that the "
+                f"sources do not support — never invent specifics."
+            )
+            self._cancel_check()
+            article = self._writer.run(
+                fact_topic, level, section,
+                source_content=source_content,
+                real_sources=real_sources,
+                guidelines=self._guidelines,
+                sub_level=sub_level,
+            )
+            # 수정 후 표절 재검사 원칙 유지
+            plagiarism_report = self._plagcheck.run(article)
+            fact_passed, issues = self._factcheck.run(article, real_sources)
+            if not fact_passed:
+                self._log(
+                    f"[{self.AGENT_LABEL}] 사실 점검 의심 항목 잔류 — "
+                    f"미리보기에서 확인 후 AI 수정 채팅으로 보완해주세요"
+                )
 
         return article, plagiarism_report
 

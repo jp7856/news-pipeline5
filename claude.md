@@ -18,8 +18,9 @@
 
 ```
 Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: agents/guidelines/*.md)
-         → [Phase 1] SourceFinder(웹검색, 도메인 화이트리스트)
-         → Writer → Plagiarism (실패 시 실패 항목 피드백으로 최대 3회 재작성)
+         → [Phase 1] SourceFinder(웹검색, 도메인 화이트리스트, 최신 기사 우선·발행일 수집)
+         → Writer → Plagiarism (실패 시 실패 항목 피드백으로 최대 3회 재작성, 걸린 항목 로그)
+         → FactCheck (출처 대조 사실 점검 — 불일치 시 1회 재작성 + 표절 재검사)
          → 초안 미리보기 + 대화형 AI 수정/질문 (Reviser 채팅, 수정 시 표절 재검사)
          → [이후 작업 진행] → [Phase 2] Editor(자동반영) → Crossword + Workbook
          → Translator → ImageFinder → Reviewer(검수, 거부 시 fix_targets만 재작성 후 재검수 최대 2회)
@@ -51,6 +52,7 @@ agents/guidelines/         # 신문별 작성 지침 (Writer 프롬프트 주입
 agents/content_producer.py # 에이전트 1 공통 베이스 — produce_article(표절 3회 루프) / produce_extras
 agents/sub_agents/
   source_finder.py         # 웹 검색 출처 (BBC/Reuters 등은 크롤러 차단 — 넣으면 400)
+  fact_checker.py          # 기사-출처 대조 사실 점검 (출처 없으면 생략)
   reviser.py               # (article, reply, changed) 반환
   usage_tracker.py         # TrackedClient — 모든 클라이언트는 이걸로 생성
 dashboard/app.py           # /api/run /stop /continue /revise /publish /published /health

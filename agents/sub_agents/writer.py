@@ -59,10 +59,12 @@ class WriterAgent:
         real_source_hint = ""
         if real_sources:
             lines = "\n".join(
-                f"- {s['title']}: {s['snippet']}" for s in real_sources
+                f"- [{s.get('date', 'unknown')}] {s['title']}: {s['snippet']}"
+                for s in real_sources
             )
             real_source_hint = (
-                f"\n\nRecent real news references on this topic (for factual grounding):\n{lines}"
+                f"\n\nRecent real news references on this topic (for factual grounding — "
+                f"every specific claim in your article must be consistent with these):\n{lines}"
             )
 
         prompt = f"""You are writing an article for {cfg['newspaper']}.

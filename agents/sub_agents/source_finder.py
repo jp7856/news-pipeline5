@@ -60,21 +60,31 @@ def search_real_sources(
             messages=[{
                 "role": "user",
                 "content": (
-                    f"Search the web for recent news articles about: {topic}"
+                    f"Search the web for the MOST RECENT news articles about: {topic}"
                     f"{f' (category: {section})' if section else ''}. "
                     f"If the topic is not in English, translate it to English first "
                     f"and search with the English query.\n\n"
+                    f"Recency matters: prefer articles from the last 12 months, the newer "
+                    f"the better. Avoid clearly outdated articles unless the topic is "
+                    f"historical.\n\n"
                     f"After searching, output ONLY a JSON array of the {max_results} best "
-                    f"articles you found, using the exact URLs from your search results:\n"
-                    f'[{{"title": "...", "url": "...", "snippet": "one-line summary"}}]\n'
+                    f"articles you found, newest first, using the exact URLs from your "
+                    f"search results:\n"
+                    f'[{{"title": "...", "url": "...", "snippet": "one-line summary", '
+                    f'"date": "YYYY-MM or unknown"}}]\n'
                     f"Output only the JSON array, no other text. "
-                    f"Only include URLs that appeared in your search results — never invent URLs."
+                    f"Only include URLs that appeared in your search results — never invent "
+                    f"URLs, and never invent dates (use \"unknown\" if not shown)."
                 ),
             }],
         )
 
         sources = _parse_sources(message, max_results)
-        _log(f"[SourceFinder] 실제 출처 {len(sources)}건 검색 완료")
+        dates = ", ".join(s.get("date") or "미상" for s in sources) if sources else ""
+        _log(
+            f"[SourceFinder] 실제 출처 {len(sources)}건 검색 완료"
+            + (f" (발행일: {dates})" if dates else "")
+        )
         return sources
     except Exception as e:
         _log(f"[SourceFinder] 검색 실패 (무시하고 계속): {e}")
@@ -101,6 +111,7 @@ def _parse_sources(message, max_results: int) -> list[dict]:
                     "title": it.get("title", ""),
                     "url": it.get("url", ""),
                     "snippet": it.get("snippet", ""),
+                    "date": it.get("date", "unknown"),
                 }
                 for it in items
                 if isinstance(it, dict) and it.get("url", "").startswith("http")
@@ -128,6 +139,7 @@ def _parse_sources(message, max_results: int) -> list[dict]:
                 "title": getattr(r, "title", ""),
                 "url": url,
                 "snippet": "",
+                "date": "unknown",
             })
             if len(sources) >= max_results:
                 return sources
