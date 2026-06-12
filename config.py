@@ -45,72 +45,73 @@ LEVEL_CONFIG: dict[str, dict] = {
         "newspaper":        "NE Times Kinder",
         "cefr":             "A1 (media range Pre-A1 to A1)",
         "target":           "kindergarteners and early elementary school students (ages 5–8)",
-        "word_count_range": "60–85",
-        "paragraph_count":  "2–3",
+        "word_count_range": "45–90",
+        "paragraph_count":  "4–6",
     },
     "kids": {
         "newspaper":        "NE Times Kids",
         "cefr":             "A2 (media range A1+ to A2+)",
         "target":           "elementary school students (ages 9–12)",
-        "word_count_range": "90–115",
-        "paragraph_count":  "3–4",
+        "word_count_range": "70–120",
+        "paragraph_count":  "4–5",
     },
     "junior": {
         "newspaper":        "NE Times Junior",
         "cefr":             "early B1 (media range A2+ to B1)",
         "target":           "high elementary and low middle school students (ages 11–14)",
-        "word_count_range": "155–190",
+        "word_count_range": "150–190",
         "paragraph_count":  "4–5",
     },
     "times": {
         "newspaper":        "NE Times",
         "cefr":             "B1+ (media range B1 to B2)",
         "target":           "high school students (ages 15–18)",
-        "word_count_range": "240–290",
-        "paragraph_count":  "5–6",
+        "word_count_range": "245–300",
+        "paragraph_count":  "5–8",
     },
     # ⚠️ placeholder — junior 복사본. 실측 분석에 미포함, 에이전트 1-5 지침 입고 시 확정 필요
     "junior_m": {
         "newspaper":        "NE Times Junior M",
         "cefr":             "early B1 (media range A2+ to B1)",
         "target":           "high elementary and low middle school students (ages 11–14)",
-        "word_count_range": "155–190",
+        "word_count_range": "150–190",
         "paragraph_count":  "4–5",
     },
 }
 
 # ------------------------------------------------------------------
-# 매체 내부 서브레벨 (L1~L3) — 2026-06 실측 CEFR 분석 그대로.
-# 평균값 기준 ±15% 정도로 단어 수 범위를 잡음. 생성 시 기본값은 L2.
+# 매체 내부 서브레벨 — 2026-06 실제 발행 기사 CSV 분석 (산문 기사만, 각주 제외).
+# 평균이 아닌 실측 범위(min–max) 기준 — 기사는 반드시 이 범위 안에서 작성.
 # 선택된 서브레벨 값이 LEVEL_CONFIG 위에 덮어써져 Writer 프롬프트에 들어간다.
+# 상세 분석·문체 규칙: agents/guidelines/*.md / 분석 도구: tests/analyze_media_csv.py
 # ------------------------------------------------------------------
 DEFAULT_SUBLEVEL = "L2"
 
 SUBLEVEL_CONFIG: dict[str, dict[str, dict]] = {
     "kinder": {  # KINDER는 L1~L2만 존재
-        "L1": {"cefr": "Pre-A1", "word_count_range": "40–55",   "sentence_length": "about 5 words",  "paragraph_count": "2"},
-        "L2": {"cefr": "A1",     "word_count_range": "60–85",   "sentence_length": "about 6 words",  "paragraph_count": "2–3"},
+        "L1": {"cefr": "Pre-A1", "word_count_range": "35–55",   "sentence_length": "4–6 words",   "paragraph_count": "4–5"},
+        "L2": {"cefr": "A1",     "word_count_range": "45–90",   "sentence_length": "5–8 words",   "paragraph_count": "4–6"},
     },
     "kids": {
-        "L1": {"cefr": "A1+",    "word_count_range": "55–75",   "sentence_length": "about 8 words",  "paragraph_count": "2–3"},
-        "L2": {"cefr": "A2",     "word_count_range": "90–115",  "sentence_length": "about 9 words",  "paragraph_count": "3–4"},
-        "L3": {"cefr": "A2+",    "word_count_range": "130–165", "sentence_length": "about 9 words",  "paragraph_count": "4–5"},
+        "L1": {"cefr": "A1+",    "word_count_range": "55–70",   "sentence_length": "7–10 words",  "paragraph_count": "3–4"},
+        "L2": {"cefr": "A2",     "word_count_range": "70–120",  "sentence_length": "8–12 words",  "paragraph_count": "4–5"},
+        "L3": {"cefr": "A2+",    "word_count_range": "155–180", "sentence_length": "9–13 words",  "paragraph_count": "9–11"},
     },
     "junior": {
-        "L1": {"cefr": "A2+",      "word_count_range": "95–125",  "sentence_length": "about 12 words", "paragraph_count": "3–4"},
-        "L2": {"cefr": "early B1", "word_count_range": "155–190", "sentence_length": "about 13–14 words", "paragraph_count": "4–5"},
-        "L3": {"cefr": "B1",       "word_count_range": "180–220", "sentence_length": "about 12–13 words", "paragraph_count": "4–5"},
+        "L1": {"cefr": "A2+",      "word_count_range": "115–160", "sentence_length": "10–15 words", "paragraph_count": "4"},
+        "L2": {"cefr": "early B1", "word_count_range": "150–190", "sentence_length": "11–17 words", "paragraph_count": "4–5"},
+        "L3": {"cefr": "B1",       "word_count_range": "190–230", "sentence_length": "13–18 words", "paragraph_count": "6–7"},
     },
     "times": {
-        "L1": {"cefr": "B1",  "word_count_range": "105–135", "sentence_length": "about 15 words", "paragraph_count": "3–4"},
-        "L2": {"cefr": "B1+", "word_count_range": "240–290", "sentence_length": "about 16 words", "paragraph_count": "5–6"},
-        "L3": {"cefr": "B2",  "word_count_range": "280–340", "sentence_length": "about 15 words", "paragraph_count": "6–7"},
+        "L1": {"cefr": "B1",  "word_count_range": "110–150", "sentence_length": "13–18 words", "paragraph_count": "3–5"},
+        "L2": {"cefr": "B1+", "word_count_range": "245–300", "sentence_length": "14–20 words", "paragraph_count": "5–8"},
+        "L3": {"cefr": "B2",  "word_count_range": "255–300", "sentence_length": "15–19 words", "paragraph_count": "6–10"},
     },
     # ⚠️ placeholder — junior 복사본 (실측 분석 미포함)
     "junior_m": {
-        "L1": {"cefr": "A2+",      "word_count_range": "95–125",  "sentence_length": "about 12 words", "paragraph_count": "3–4"},
-        "L2": {"cefr": "early B1", "word_count_range": "155–190", "sentence_length": "about 13–14 words", "paragraph_count": "4–5"},
-        "L3": {"cefr": "B1",       "word_count_range": "180–220", "sentence_length": "about 12–13 words", "paragraph_count": "4–5"},
+        "L1": {"cefr": "A2+",      "word_count_range": "115–160", "sentence_length": "10–15 words", "paragraph_count": "4"},
+        "L2": {"cefr": "early B1", "word_count_range": "150–190", "sentence_length": "11–17 words", "paragraph_count": "4–5"},
+        "L3": {"cefr": "B1",       "word_count_range": "190–230", "sentence_length": "13–18 words", "paragraph_count": "6–7"},
     },
 }
 

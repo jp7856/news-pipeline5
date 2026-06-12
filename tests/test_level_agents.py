@@ -76,7 +76,7 @@ for lv in Level:
 assert "L3" not in SUBLEVEL_CONFIG["kinder"], "KINDER는 L1~L2만"
 
 cfg, sub = WriterAgent._merge_config(Level.KIDS, "L3")
-assert sub == "L3" and cfg["cefr"] == "A2+" and cfg["word_count_range"] == "130–165"
+assert sub == "L3" and cfg["cefr"] == "A2+" and cfg["word_count_range"] == "155–180"
 assert cfg["newspaper"] == "NE Times Kids"  # 베이스 값 유지
 cfg, sub = WriterAgent._merge_config(Level.KINDER, "L3")  # 없는 서브레벨 → L2 폴백
 assert sub == "L2" and cfg["cefr"] == "A1"

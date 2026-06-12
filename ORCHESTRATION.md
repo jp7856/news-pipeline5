@@ -71,11 +71,12 @@
 
 ## 3. 지침 마크다운 작성 규칙
 
-> **수치 기준**: 2026-06 실제 NE Times 4개 매체 발행 기사의 CEFR 분석.
-> 각 매체의 내부 서브레벨(L1~L3, KINDER는 L1~L2)은 `config.py SUBLEVEL_CONFIG`에
-> 정의되어 있고, **대시보드에서 선택**합니다 (기본 L2). 선택된 서브레벨의
-> 단어 수·문장 길이·CEFR이 LEVEL_CONFIG 위에 덮어써져 Writer 프롬프트에 들어가며,
-> 지침 파일에는 수치가 아닌 **문체 규칙**만 둡니다.
+> **수치 기준**: 2026-06 실제 발행 기사 CSV 분석 (4개 매체, 산문 기사 155건,
+> 각주 제외 — 분석 도구: `tests/analyze_media_csv.py`).
+> 수치는 평균이 아닌 **실측 범위(min–max)** — 기사는 반드시 범위 안에서 작성합니다.
+> 각 매체의 서브레벨(L1~L3, KINDER는 L1~L2)은 `config.py SUBLEVEL_CONFIG`에 정의
+> (기본 L2). 선택된 서브레벨의 단어 수·문장 길이·CEFR이 LEVEL_CONFIG 위에 덮어써져
+> Writer 프롬프트에 들어가고, 지침 파일에는 범위 표 + **문체 규칙**을 둡니다.
 > 매체 경계는 연속적(KIDS L3 ≈ JUNIOR L1, JUNIOR L3 ≈ TIMES L1).
 > JUNIOR M은 분석 미포함 — placeholder. 서브레벨은 시트 18번째 컬럼(R열)에 기록됩니다.
 

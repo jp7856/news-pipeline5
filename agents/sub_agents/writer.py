@@ -72,9 +72,9 @@ Section: {section.value}
 Target readers: {cfg['target']}
 Sub-level within this newspaper: {sub_level}
 CEFR level: {cfg['cefr']}
-Target word count: {cfg['word_count_range']} words (Microsoft Word standard)
-Average sentence length: {cfg.get('sentence_length', 'appropriate to the level')}
-Paragraphs: {cfg['paragraph_count']} paragraphs of roughly equal size
+Word count: {cfg['word_count_range']} words — the total MUST fall within this range (Microsoft Word standard)
+Average sentence length: {cfg.get('sentence_length', 'appropriate to the level')} — keep the article average within this range
+Paragraphs: {cfg['paragraph_count']} short paragraphs (1–3 sentences each, like a real newspaper)
 {self._guideline_hint(guidelines, cfg)}
 
 Instructions:
