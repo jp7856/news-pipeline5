@@ -22,10 +22,11 @@ SHEET_COLUMNS = [
     "생성일시", "레벨", "섹션", "토픽", "단어수",
     "기사(영문)", "기사(한국어)", "요약(한국어)",
     "어휘", "출처", "표절검사", "이미지URL",
-    "크로스워드", "워크북Set1", "워크북Set2", "상태",
+    "크로스워드", "워크북Set1", "워크북Set2", "상태", "비용(원)",
 ]
 
-STATUS_COL = len(SHEET_COLUMNS)  # 상태 컬럼 위치 (1-based)
+STATUS_COL = SHEET_COLUMNS.index("상태") + 1     # 상태 컬럼 위치 (1-based)
+COST_COL = SHEET_COLUMNS.index("비용(원)") + 1   # 비용 컬럼 위치 (1-based)
 
 
 class WorksheetAgent:
@@ -34,7 +35,7 @@ class WorksheetAgent:
         self._sheet = None
         self.last_row: int | None = None  # 마지막으로 저장한 행 번호 (발행용)
 
-    def run(self, package: ContentPackage) -> tuple[ContentPackage, str]:
+    def run(self, package: ContentPackage, cost_krw: int | None = None) -> tuple[ContentPackage, str]:
         """
         ContentPackage를 Google Sheets에 저장한다.
         Returns: (package, sheet_url)
@@ -44,7 +45,7 @@ class WorksheetAgent:
         try:
             sheet = self._get_sheet()
             self._ensure_header(sheet)
-            row = self._package_to_row(package)
+            row = self._package_to_row(package, cost_krw)
             resp = sheet.append_row(row, value_input_option="USER_ENTERED")
             self.last_row = self._parse_row_number(resp)
             sheet_url = f"https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}"
@@ -65,6 +66,15 @@ class WorksheetAgent:
         except Exception as e:
             self._log(f"[Publish] 발행 처리 오류: {e}")
             return False
+
+    def update_cost(self, row: int, cost_krw: int) -> None:
+        """해당 행의 비용 컬럼을 최종 비용으로 갱신한다 (검수 단계 비용 포함)."""
+        try:
+            sheet = self._get_sheet()
+            sheet.update_cell(row, COST_COL, cost_krw)
+            self._log(f"[Agent4] 비용 기록: {cost_krw:,}원 ({row}행)")
+        except Exception as e:
+            self._log(f"[Agent4] 비용 기록 오류 (무시): {e}")
 
     @staticmethod
     def _parse_row_number(append_response) -> int | None:
@@ -147,12 +157,17 @@ class WorksheetAgent:
                     "sheet_row": idx + 2,  # 헤더가 1행이므로 데이터는 2행부터
                     "published": len(row) > 15 and row[15].startswith("발행"),
                 }
+                try:
+                    cost_krw = round(float(row[16])) if len(row) > 16 and row[16] else 0
+                except ValueError:
+                    cost_krw = 0
                 history.append({
                     "idx": idx,
                     "created_at": row[0],
                     "topic": row[3],
                     "level": row[1],
                     "section": row[2],
+                    "cost_krw": cost_krw,
                     "result": result,
                 })
             logger.info(f"[Worksheet] 히스토리 {len(history)}건 로드")
@@ -169,7 +184,7 @@ class WorksheetAgent:
             # 컬럼이 추가된 경우 헤더를 제자리에서 갱신 (기존 데이터 유지)
             sheet.update(values=[SHEET_COLUMNS], range_name="A1")
 
-    def _package_to_row(self, pkg: ContentPackage) -> list:
+    def _package_to_row(self, pkg: ContentPackage, cost_krw: int | None = None) -> list:
         from datetime import datetime
 
         crossword = json.dumps(
@@ -207,4 +222,5 @@ class WorksheetAgent:
             wb1,
             wb2,
             "작성완료",
+            cost_krw if cost_krw is not None else "",
         ]

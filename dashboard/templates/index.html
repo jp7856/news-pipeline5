@@ -146,6 +146,8 @@
   <header>
     <h1>NE Times Content Pipeline</h1>
     <span class="badge" id="status-badge">Ready</span>
+    <span class="badge" id="usage-badge" style="margin-left:auto;background:#1e3a5f;color:#93c5fd;cursor:default"
+          title="시트 비용 컬럼에 기록된 기사별 비용의 합계 (구버전 행은 비용 미기록)"></span>
   </header>
 
   <main>
@@ -271,7 +273,19 @@
       _clientRunning = false;
       setRunning(false);
       renderResult(result);
+      refreshUsage();
     });
+
+    // ── 누적 사용액 ──────────────────────────────────────────────
+    async function refreshUsage() {
+      try {
+        const res = await fetch("/api/usage");
+        const u = await res.json();
+        document.getElementById("usage-badge").textContent =
+          `💰 누적 약 ${u.total_krw.toLocaleString()}원 · ${u.count}건`;
+      } catch (e) { /* 시트 미연결 등 — 표시만 생략 */ }
+    }
+    refreshUsage();
 
     socket.on("pipeline_error", ({error}) => {
       _clientRunning = false;
@@ -774,7 +788,7 @@
             <span class="hi-badge">${h.level.toUpperCase()}</span>
             <span class="hi-badge" style="background:#1e3a5f;color:#93c5fd">${h.section}</span>
             <span class="hi-topic">${esc(h.topic)}</span>
-            <span class="hi-meta">${h.created_at}</span>
+            <span class="hi-meta">${h.cost_krw ? h.cost_krw.toLocaleString() + "원 · " : ""}${h.created_at}</span>
           </div>`).join("");
       }
       document.getElementById("history-modal").classList.add("open");

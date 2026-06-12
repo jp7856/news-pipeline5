@@ -241,6 +241,14 @@ def api_published():
     return jsonify(published)
 
 
+@app.route("/api/usage")
+def api_usage():
+    """누적 사용액 — 시트 비용 컬럼에 기록된 기사별 비용의 합계."""
+    total = sum(e.get("cost_krw") or 0 for e in _history)
+    counted = sum(1 for e in _history if e.get("cost_krw"))
+    return jsonify({"total_krw": total, "count": len(_history), "counted": counted})
+
+
 @app.route("/api/history")
 def api_history():
     return jsonify(_history)
@@ -308,6 +316,7 @@ def _run_phase2(sid: str, state: dict):
             "topic": state["topic"],
             "level": state["level"].value,
             "section": state["section"].value,
+            "cost_krw": getattr(orchestrator, "cost_krw", 0),
             "result": result,
         }
         _history.append(entry)

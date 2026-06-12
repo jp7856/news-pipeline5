@@ -56,18 +56,30 @@ def record_usage(message) -> None:
             _totals["web_searches"] += getattr(server, "web_search_requests", 0) or 0
 
 
-def usage_summary() -> str:
-    """누적 사용량과 추정 비용 문자열을 반환한다."""
-    with _lock:
-        t = dict(_totals)
-
-    cost_usd = (
+def _cost_usd(t: dict) -> float:
+    return (
         t["input_tokens"] / 1_000_000 * PRICE_INPUT
         + t["output_tokens"] / 1_000_000 * PRICE_OUTPUT
         + t["cache_write_tokens"] / 1_000_000 * PRICE_CACHE_WRITE
         + t["cache_read_tokens"] / 1_000_000 * PRICE_CACHE_READ
         + t["web_searches"] * PRICE_WEB_SEARCH
     )
+
+
+def usage_cost() -> dict:
+    """현재까지 누적 추정 비용을 숫자로 반환한다 (시트 기록·대시보드 표시용)."""
+    with _lock:
+        t = dict(_totals)
+    usd = _cost_usd(t)
+    return {"usd": round(usd, 4), "krw": round(usd * USD_TO_KRW)}
+
+
+def usage_summary() -> str:
+    """누적 사용량과 추정 비용 문자열을 반환한다."""
+    with _lock:
+        t = dict(_totals)
+
+    cost_usd = _cost_usd(t)
     cost_krw = cost_usd * USD_TO_KRW
 
     return (

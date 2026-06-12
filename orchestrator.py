@@ -87,7 +87,7 @@ class Orchestrator:
     # ------------------------------------------------------------------
     def run_phase2(self, state: dict) -> tuple[ContentPackage, str]:
         """Phase 1 상태를 받아 나머지 파이프라인을 완료한다."""
-        from agents.sub_agents.usage_tracker import usage_summary
+        from agents.sub_agents.usage_tracker import usage_summary, usage_cost
 
         topic, level, section = state["topic"], state["level"], state["section"]
         producer: ContentProducerAgent = state["producer"]
@@ -110,7 +110,7 @@ class Orchestrator:
         # ── Agent 4: Google Sheets 저장 ───────────────────────────
         self._check_cancel()
         worksheet = WorksheetAgent(log_callback=self._log)
-        package, sheet_url = worksheet.run(package)
+        package, sheet_url = worksheet.run(package, cost_krw=usage_cost()["krw"])
         self._sheet_url = sheet_url
         self.sheet_row = worksheet.last_row  # 발행 시 상태 갱신용
 
@@ -118,6 +118,11 @@ class Orchestrator:
         self._check_cancel()
         reviewer = ReviewerAgent(log_callback=self._log)
         package = reviewer.run(package)
+
+        # 검수까지 포함한 최종 비용을 시트에 반영 (대시보드 누적 사용액 집계용)
+        self.cost_krw = usage_cost()["krw"]
+        if self.sheet_row:
+            worksheet.update_cost(self.sheet_row, self.cost_krw)
 
         # ── 결과 요약 ─────────────────────────────────────────────
         duration = (datetime.now() - (self._start or datetime.now())).seconds
