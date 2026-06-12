@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>NE Times Content Pipeline</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+    header{background:#1e293b;padding:14px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #334155}
+    header h1{font-size:1.15rem;font-weight:600}
+    .badge{background:#334155;padding:4px 10px;border-radius:999px;font-size:.75rem}
+    .badge.running{background:#16a34a;animation:pulse 1.5s infinite;cursor:pointer}
+    .badge.running:hover{background:#dc2626;animation:none}
+    .badge.running:hover::after{content:" — 클릭하여 중단"}
+
+    /* Phase 1 continue bar */
+    #continue-bar{display:none;flex-direction:column;gap:10px;background:#1e3a5f;border:1px solid #3b82f6;border-radius:10px;padding:14px 18px;margin-bottom:16px}
+    #continue-bar.show{display:flex}
+    .cb-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .cb-row p{flex:1;font-size:.9rem;color:#93c5fd;min-width:200px}
+    #btn-continue{background:#16a34a;color:white;font-weight:600}
+    #btn-discard{background:#1e293b;color:#94a3b8;border:1px solid #334155}
+    #revise-input{flex:1;min-width:240px;padding:9px 14px;border:1px solid #3b82f6;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:.85rem}
+    #btn-revise{background:#7c3aed;color:white;font-weight:600}
+    #btn-revise:disabled{background:#475569;cursor:not-allowed}
+    #revise-chat{display:none;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto}
+    #revise-chat.show{display:flex}
+    .chat-q{align-self:flex-end;background:#3b82f6;color:white;padding:8px 14px;border-radius:12px 12px 2px 12px;font-size:.85rem;max-width:80%}
+    .chat-a{align-self:flex-start;background:#0f172a;border:1px solid #7c3aed;color:#e2e8f0;padding:10px 14px;border-radius:12px 12px 12px 2px;font-size:.85rem;max-width:85%;line-height:1.6;white-space:pre-wrap}
+    .chat-a .chat-tag{display:inline-block;font-size:.7rem;color:#a78bfa;margin-bottom:4px}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+    main{padding:20px;max-width:1300px;margin:0 auto}
+
+    /* Form */
+    .form-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+    input[type=text]{flex:1;min-width:250px;padding:10px 14px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;font-size:.9rem}
+    select{padding:10px 14px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;font-size:.9rem;min-width:120px}
+    button{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:500}
+    #btn-run{background:#3b82f6;color:white}
+    #btn-run:disabled{background:#475569;cursor:not-allowed}
+
+    /* Tabs */
+    .tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+    .tab{padding:8px 16px;border-radius:8px 8px 0 0;background:#1e293b;color:#94a3b8;cursor:pointer;font-size:.85rem;border:1px solid #334155;border-bottom:none}
+    .tab.active{background:#0f172a;color:#e2e8f0;border-color:#3b82f6;border-bottom:1px solid #0f172a}
+
+    /* Panels */
+    .panel{background:#1e293b;border-radius:0 12px 12px 12px;padding:20px;min-height:300px;display:none;border:1px solid #334155}
+    .panel.active{display:block}
+    .panel h2{font-size:.85rem;font-weight:600;color:#94a3b8;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em}
+
+    /* Article */
+    .article-text{white-space:pre-wrap;line-height:1.8;font-size:.95rem;color:#f1f5f9}
+    .stat{display:inline-block;background:#334155;padding:3px 10px;border-radius:12px;font-size:.75rem;margin-right:6px;margin-bottom:8px}
+    .stat.pass{background:#14532d;color:#4ade80}
+    .stat.fail{background:#7f1d1d;color:#fca5a5}
+
+    /* Lists */
+    .vocab-tag{display:inline-block;background:#1e3a5f;color:#93c5fd;padding:4px 12px;border-radius:999px;font-size:.8rem;margin:3px 4px 3px 0}
+    .source-link{color:#60a5fa;font-size:.85rem;text-decoration:none;display:block;margin:4px 0}
+    .source-link:hover{text-decoration:underline}
+
+    /* Checklist */
+    .check-item{padding:8px 0;border-bottom:1px solid #1e293b;font-size:.85rem}
+    .check-item .status{font-weight:700;margin-right:6px}
+    .check-item .status.pass{color:#4ade80}
+    .check-item .status.fail{color:#f87171}
+
+    /* Suggestions */
+    .suggestion{padding:12px 0;border-bottom:1px solid #334155}
+    .suggestion .orig{color:#fbbf24;font-size:.85rem;font-style:italic}
+    .suggestion .arrow{color:#64748b;margin:4px 0;font-size:.8rem}
+    .suggestion .sugg{color:#4ade80;font-size:.85rem}
+    .suggestion .reason{color:#94a3b8;font-size:.8rem;margin-top:4px}
+
+    /* Crossword */
+    .cw-card{background:#0f172a;border-radius:8px;padding:14px;margin-bottom:10px}
+    .cw-word{font-weight:700;color:#f59e0b;font-size:.95rem}
+    .cw-korean{color:#94a3b8;font-size:.8rem;margin-left:8px}
+    .cw-sentence{font-size:.85rem;margin:4px 0 0 12px;line-height:1.5}
+    .cw-label{color:#64748b;font-size:.75rem;font-weight:600;margin-right:6px}
+
+    /* Workbook */
+    .wb-set{background:#0f172a;border-radius:8px;padding:16px;margin-bottom:14px}
+    .wb-set h3{font-size:.9rem;color:#f59e0b;margin-bottom:10px}
+    .wb-section{margin-bottom:12px}
+    .wb-section h4{font-size:.8rem;color:#94a3b8;margin-bottom:6px;text-transform:uppercase}
+    .wb-section p,.wb-section li{font-size:.85rem;line-height:1.6}
+    .wb-section ul{padding-left:18px}
+
+    /* Log */
+    #log-box{height:200px;overflow-y:auto;font-family:monospace;font-size:.8rem;line-height:1.5;color:#a3e635;background:#0f172a;border-radius:8px;padding:12px}
+    #log-box p{margin:1px 0}
+
+    /* Image panel */
+    .img-panel{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+    .img-preview{flex:0 0 auto}
+    .img-preview img{width:340px;max-width:100%;border-radius:10px;cursor:pointer;border:2px solid #334155;transition:border-color .2s}
+    .img-preview img:hover{border-color:#3b82f6}
+    .img-no-image{width:340px;height:220px;background:#0f172a;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:.85rem;border:2px dashed #334155}
+    .img-info{flex:1;min-width:200px}
+    .img-info p{font-size:.85rem;color:#94a3b8;word-break:break-all;margin-bottom:12px}
+    .btn-search{background:#f59e0b;color:#0f172a;padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;text-decoration:none;display:inline-block}
+    .btn-search:hover{background:#fbbf24}
+
+    /* History modal */
+    #history-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:900;align-items:flex-start;justify-content:center;padding-top:60px}
+    #history-modal.open{display:flex}
+    .history-box{background:#1e293b;border-radius:12px;width:640px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;border:1px solid #334155}
+    .history-header{padding:16px 20px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between}
+    .history-header h3{font-size:.95rem;font-weight:600}
+    .history-close{background:none;border:none;color:#94a3b8;font-size:1.4rem;cursor:pointer;padding:0}
+    .history-list{overflow-y:auto;flex:1;padding:12px}
+    .history-item{padding:10px 12px;border-radius:8px;cursor:pointer;display:flex;gap:12px;align-items:center;border:1px solid transparent}
+    .history-item:hover{background:#0f172a;border-color:#334155}
+    .hi-badge{font-size:.7rem;padding:3px 8px;border-radius:999px;background:#334155;white-space:nowrap}
+    .hi-topic{font-size:.9rem;font-weight:500;flex:1}
+    .hi-meta{font-size:.75rem;color:#64748b;white-space:nowrap}
+
+    /* Lightbox */
+    #lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center}
+    #lightbox.open{display:flex}
+    #lightbox img{max-width:90vw;max-height:90vh;border-radius:10px}
+    #lightbox-close{position:absolute;top:20px;right:28px;color:#fff;font-size:2rem;cursor:pointer;line-height:1}
+
+    /* Review */
+    .review-verdict{display:flex;align-items:center;gap:14px;padding:20px;border-radius:12px;margin-bottom:18px}
+    .review-verdict.approved{background:#14532d;border:1px solid #22c55e}
+    .review-verdict.rejected{background:#7f1d1d;border:1px solid #ef4444}
+    .review-icon{font-size:2.2rem;line-height:1}
+    .review-title{font-size:1.1rem;font-weight:700}
+    .review-title.approved{color:#4ade80}
+    .review-title.rejected{color:#fca5a5}
+    .review-status{font-size:.8rem;color:#cbd5e1;margin-top:2px}
+    .review-notes{background:#0f172a;border-radius:8px;padding:16px;font-size:.9rem;line-height:1.7;color:#e2e8f0}
+    .review-notes h4{font-size:.75rem;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>NE Times Content Pipeline</h1>
+    <span class="badge" id="status-badge">Ready</span>
+  </header>
+
+  <main>
+    <div class="form-row">
+      <input type="text" id="topic" placeholder="Enter topic (e.g. Climate change and young activists)">
+      <select id="level">
+        {% for lv in levels %}
+        <option value="{{lv.value}}" {% if lv.value == 'junior' %}selected{% endif %}>{{lv.label}}</option>
+        {% endfor %}
+      </select>
+      <select id="section">
+        {% for sc in sections %}
+        <option value="{{sc.value}}">{{sc.label}}</option>
+        {% endfor %}
+      </select>
+      <button id="btn-run" onclick="runPipeline()">Generate</button>
+      <button style="background:#1e293b;color:#94a3b8;border:1px solid #334155" onclick="openHistory()">모두 보기</button>
+    </div>
+    <div class="form-row" style="margin-bottom:56px;margin-top:8px">
+      <input type="url" id="source-url" placeholder="기사 링크 삽입 (선택) — URL로 원문 기반 자동 생성" style="flex:1;padding:8px 14px;font-size:.95rem">
+    </div>
+      <a id="btn-sheet" href="#" target="_blank" class="hidden"
+         style="padding:10px 20px;background:#166534;color:#4ade80;border-radius:8px;font-size:.9rem;font-weight:500;text-decoration:none">
+        📊 시트 열기
+      </a>
+      <button id="btn-publish" class="hidden" onclick="publishArticle()"
+         style="padding:10px 20px;background:#f59e0b;color:#0f172a;border-radius:8px;font-size:.9rem;font-weight:700;margin-left:8px">
+        📢 발행하기
+      </button>
+    </div>
+
+    <!-- Log -->
+    <div id="log-box" class="hidden"></div>
+
+    <!-- Phase 1 → 2 진행 바 -->
+    <div id="continue-bar">
+      <div class="cb-row">
+        <p>📝 기사 초안이 완성됐습니다. 검토 후 나머지 작업(교정·크로스워드·워크북·번역·이미지·시트저장·검수)을 진행하세요.</p>
+        <button id="btn-continue" onclick="continuePipeline()">이후 작업 진행 ▶</button>
+        <button id="btn-discard" onclick="discardPipeline()">취소</button>
+      </div>
+      <div id="revise-chat"></div>
+      <div class="cb-row">
+        <input type="text" id="revise-input"
+               placeholder="🤖 수정 지시 또는 질문 — 예: 두 번째 문단 더 쉽게 / 표절 경고 왜 떴어?"
+               onkeydown="if(event.key==='Enter')revisePipeline()">
+        <button id="btn-revise" onclick="revisePipeline()">보내기</button>
+      </div>
+    </div>
+
+    <!-- Result area -->
+    <div id="result-area" class="hidden">
+      <div class="tabs">
+        <div class="tab active" data-tab="article">Article</div>
+        <div class="tab" data-tab="korean">한국어</div>
+        <div class="tab" data-tab="plagiarism">Plagiarism</div>
+        <div class="tab" data-tab="editing">Editing</div>
+        <div class="tab" data-tab="crossword">Crossword</div>
+        <div class="tab" data-tab="workbook">Workbook</div>
+        <div class="tab" data-tab="image-v1">이미지 V1</div>
+        <div class="tab" data-tab="image-v2">이미지 V2</div>
+        <div class="tab" data-tab="review">검수</div>
+      </div>
+
+      <div class="panel active" id="panel-article"></div>
+      <div class="panel" id="panel-korean"></div>
+      <div class="panel" id="panel-plagiarism"></div>
+      <div class="panel" id="panel-editing"></div>
+      <div class="panel" id="panel-crossword"></div>
+      <div class="panel" id="panel-workbook"></div>
+      <div class="panel" id="panel-image-v1"></div>
+      <div class="panel" id="panel-image-v2"></div>
+      <div class="panel" id="panel-review"></div>
+    </div>
+  </main>
+
+  <!-- History modal -->
+  <div id="history-modal" onclick="if(event.target===this)closeHistory()">
+    <div class="history-box">
+      <div class="history-header">
+        <h3>전체 검색 히스토리</h3>
+        <button class="history-close" onclick="closeHistory()">&times;</button>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" onclick="closeLightbox()">
+    <span id="lightbox-close">&times;</span>
+    <img id="lightbox-img" src="" alt="">
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    const logBox = document.getElementById("log-box");
+    const badge = document.getElementById("status-badge");
+    const btnRun = document.getElementById("btn-run");
+    let _mySid = "";
+
+    socket.on("connect", () => { _mySid = socket.id; });
+
+    // Tab switching
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+      });
+    });
+
+    socket.on("log", ({message}) => {
+      logBox.classList.remove("hidden");
+      const p = document.createElement("p");
+      p.textContent = message;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    });
+
+    socket.on("pipeline_done", ({result}) => {
+      _clientRunning = false;
+      setRunning(false);
+      renderResult(result);
+    });
+
+    socket.on("pipeline_error", ({error}) => {
+      _clientRunning = false;
+      setRunning(false);
+      hideContinueBar();
+      alert("Error: " + error);
+    });
+
+    socket.on("pipeline_cancelled", () => {
+      _clientRunning = false;
+      setRunning(false);
+      hideContinueBar();
+      badge.textContent = "Ready";
+    });
+
+    // Phase 1 완료 — 기사 미리보기 + 계속 버튼 표시 (AI 수정 후에도 호출됨)
+    socket.on("article_ready", ({article, plagiarism_passed, level, section}) => {
+      _clientRunning = false;
+      setRunning(false);
+      setReviseBusy(false);
+      renderArticleOnly(article, plagiarism_passed, level, section);
+      document.getElementById("continue-bar").classList.add("show");
+    });
+
+    let _clientRunning = false;
+
+    // Running 배지 클릭 → 중단
+    badge.addEventListener("click", () => {
+      if (!badge.classList.contains("running") && !document.getElementById("continue-bar").classList.contains("show")) return;
+      if (!confirm("진행 중인 작업을 중단할까요?")) return;
+      stopPipeline();
+    });
+
+    async function stopPipeline() {
+      badge.textContent = "Stopping...";
+      await fetch("/api/stop", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({sid: _mySid}),
+      });
+    }
+
+    async function continuePipeline() {
+      hideContinueBar();
+      _clientRunning = true;
+      setRunning(true);
+      const resp = await fetch("/api/continue", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({sid: _mySid}),
+      });
+      if (!resp.ok) {
+        const data = await resp.json();
+        alert("Error: " + data.error);
+        _clientRunning = false;
+        setRunning(false);
+      }
+    }
+
+    async function discardPipeline() {
+      hideContinueBar();
+      await stopPipeline();
+    }
+
+    socket.on("revise_error", ({error}) => {
+      setReviseBusy(false);
+      setRunning(false);
+      alert("수정 실패: " + error);
+    });
+
+    // 답변 수신 — 말풍선 표시 + 기사가 바뀌었으면 미리보기 갱신
+    socket.on("revise_done", ({reply, changed, article, plagiarism_passed, level, section}) => {
+      setReviseBusy(false);
+      setRunning(false);
+      addChatBubble("a", reply, changed);
+      if (changed) {
+        renderArticleOnly(article, plagiarism_passed, level, section);
+      }
+    });
+
+    function addChatBubble(type, text, changed) {
+      const chat = document.getElementById("revise-chat");
+      chat.classList.add("show");
+      const div = document.createElement("div");
+      div.className = type === "q" ? "chat-q" : "chat-a";
+      if (type === "a") {
+        const tag = document.createElement("span");
+        tag.className = "chat-tag";
+        tag.textContent = changed ? "🤖 기사 수정됨" : "🤖 답변";
+        div.appendChild(tag);
+        div.appendChild(document.createElement("br"));
+      }
+      div.appendChild(document.createTextNode(text));
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function revisePipeline() {
+      const input = document.getElementById("revise-input");
+      const instruction = input.value.trim();
+      if (!instruction) { alert("수정 지시나 질문을 입력해주세요."); input.focus(); return; }
+
+      addChatBubble("q", instruction);
+      input.value = "";
+      setReviseBusy(true);
+      setRunning(true);
+
+      const resp = await fetch("/api/revise", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({sid: _mySid, instruction}),
+      });
+      if (!resp.ok) {
+        const data = await resp.json();
+        alert("Error: " + data.error);
+        setReviseBusy(false);
+        setRunning(false);
+      }
+    }
+
+    function setReviseBusy(busy) {
+      const btn = document.getElementById("btn-revise");
+      const cont = document.getElementById("btn-continue");
+      btn.disabled = busy;
+      cont.disabled = busy;
+      btn.textContent = busy ? "수정 중..." : "AI 수정";
+      if (!busy) document.getElementById("revise-input").value = "";
+    }
+
+    function hideContinueBar() {
+      document.getElementById("continue-bar").classList.remove("show");
+    }
+
+    function renderArticleOnly(article, plagiarismPassed, level, section) {
+      document.getElementById("result-area").classList.remove("hidden");
+      // Article 탭만 채우고 활성화
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      document.querySelector('[data-tab="article"]').classList.add("active");
+      document.getElementById("panel-article").classList.add("active");
+
+      document.getElementById("panel-article").innerHTML = `
+        <h2>Article (초안)</h2>
+        <div style="margin-bottom:10px">
+          <span class="stat">${level.toUpperCase()}</span>
+          <span class="stat">${section}</span>
+          <span class="stat">${article.word_count} words</span>
+          <span class="stat ${plagiarismPassed ? 'pass' : 'fail'}">${plagiarismPassed ? 'PLAGIARISM PASS' : 'PLAGIARISM WARNING'}</span>
+        </div>
+        <div class="article-text">${esc(article.text)}</div>
+        <h2 style="margin-top:20px">Vocabulary</h2>
+        <div>${article.vocabulary.map(w => `<span class="vocab-tag">${esc(w)}</span>`).join("")}</div>
+        <h2 style="margin-top:16px">Sources</h2>
+        ${article.sources.map(s => `<a class="source-link" href="${esc(s)}" target="_blank">${esc(s)}</a>`).join("")}
+      `;
+    }
+
+    async function runPipeline() {
+      if (_clientRunning) return;
+      const sourceUrl = document.getElementById("source-url").value.trim();
+      let topic = document.getElementById("topic").value.trim();
+      if (!topic && !sourceUrl) { alert("Please enter a topic."); return; }
+      if (!topic) topic = sourceUrl; // URL만 있으면 URL을 토픽으로 사용
+
+      _clientRunning = true;
+      setRunning(true);
+      hideContinueBar();
+      const chat = document.getElementById("revise-chat");
+      chat.innerHTML = "";
+      chat.classList.remove("show");
+      logBox.innerHTML = "";
+      logBox.classList.remove("hidden");
+      document.getElementById("result-area").classList.add("hidden");
+
+      const resp = await fetch("/api/run", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          topic,
+          level: document.getElementById("level").value,
+          section: document.getElementById("section").value,
+          sid: _mySid,
+          source_url: document.getElementById("source-url").value.trim(),
+        }),
+      });
+      if (!resp.ok) {
+        const data = await resp.json();
+        alert("Error: " + data.error);
+        _clientRunning = false;
+        setRunning(false);
+      }
+    }
+
+    function setRunning(running) {
+      btnRun.disabled = running;
+      badge.textContent = running ? "Running..." : "Ready";
+      badge.className = "badge" + (running ? " running" : "");
+    }
+
+    function renderResult(r) {
+      document.getElementById("result-area").classList.remove("hidden");
+
+      // Article
+      document.getElementById("panel-article").innerHTML = `
+        <h2>Article</h2>
+        <div style="margin-bottom:10px">
+          <span class="stat">${r.level.toUpperCase()}</span>
+          <span class="stat">${r.section}</span>
+          <span class="stat">${r.article.word_count} words</span>
+        </div>
+        <div class="article-text">${esc(r.article.text)}</div>
+        <h2 style="margin-top:20px">Vocabulary</h2>
+        <div>${r.article.vocabulary.map(w => `<span class="vocab-tag">${esc(w)}</span>`).join("")}</div>
+        <h2 style="margin-top:16px">Sources</h2>
+        ${r.article.sources.map(s => `<a class="source-link" href="${esc(s)}" target="_blank">${esc(s)}</a>`).join("")}
+      `;
+
+      // Korean
+      document.getElementById("panel-korean").innerHTML = `
+        <h2>한국어 번역</h2>
+        ${r.article.summary_ko ? `
+        <div style="background:#0f172a;border-radius:8px;padding:14px;margin-bottom:16px">
+          <h2 style="margin-bottom:8px">요약</h2>
+          <p style="font-size:.9rem;line-height:1.8;color:#94a3b8">${esc(r.article.summary_ko)}</p>
+        </div>` : ""}
+        <div class="article-text">${esc(r.article.text_ko || "번역 없음")}</div>
+      `;
+
+      // Plagiarism
+      const pStatus = r.plagiarism.passed;
+      let checkHtml = "";
+      for (const [key, val] of Object.entries(r.plagiarism.checklist)) {
+        const st = val.pass ? "pass" : "fail";
+        checkHtml += `<div class="check-item"><span class="status ${st}">${val.pass ? "PASS" : "FAIL"}</span>${esc(key)}: ${esc(val.note || "")}</div>`;
+      }
+      document.getElementById("panel-plagiarism").innerHTML = `
+        <h2>Plagiarism Check</h2>
+        <span class="stat ${pStatus ? 'pass' : 'fail'}">${pStatus ? 'ALL PASSED' : 'WARNING'}</span>
+        <div style="margin-top:12px">${checkHtml}</div>
+        ${r.plagiarism.notes ? `<p style="margin-top:12px;color:#94a3b8;font-size:.85rem">${esc(r.plagiarism.notes)}</p>` : ""}
+      `;
+
+      // Editing
+      let editHtml = r.editing.length === 0 ? '<p style="color:#4ade80">No issues found.</p>' : "";
+      for (const s of r.editing) {
+        editHtml += `<div class="suggestion">
+          <div class="orig">"${esc(s.original)}"</div>
+          <div class="arrow">&#8595;</div>
+          <div class="sugg">"${esc(s.suggestion)}"</div>
+          <div class="reason">${esc(s.reason)}</div>
+        </div>`;
+      }
+      document.getElementById("panel-editing").innerHTML = `
+        <h2>Editing Suggestions <span class="stat">${r.editing.length} items</span></h2>
+        ${editHtml}
+      `;
+
+      // Crossword
+      let cwHtml = "";
+      for (const c of r.crossword) {
+        cwHtml += `<div class="cw-card">
+          <span class="cw-word">${esc(c.word)}</span><span class="cw-korean">${esc(c.korean_definition)}</span>
+          <div class="cw-sentence"><span class="cw-label">B1</span>${esc(c.sentence_b1)}</div>
+          <div class="cw-sentence"><span class="cw-label">B1-B2</span>${esc(c.sentence_b1_b2)}</div>
+        </div>`;
+      }
+      document.getElementById("panel-crossword").innerHTML = `
+        <h2>Crossword Sentences <span class="stat">${r.crossword.length} pairs</span></h2>
+        ${cwHtml}
+      `;
+
+      // Workbook
+      let wbHtml = "";
+      for (const w of r.workbook) {
+        wbHtml += `<div class="wb-set">
+          <h3>Set ${w.set_number}</h3>
+          <div class="wb-section">
+            <h4>Vocabulary Activity</h4>
+            <p>${esc(w.vocabulary_activity)}</p>
+          </div>
+          <div class="wb-section">
+            <h4>True / False (${w.true_false.length})</h4>
+            <ul>${w.true_false.map(tf => `<li>${esc(tf.sentence)} <strong>[${tf.answer}]</strong></li>`).join("")}</ul>
+          </div>
+          <div class="wb-section">
+            <h4>Comprehension Questions (${w.comprehension_questions.length})</h4>
+            <ul>${w.comprehension_questions.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
+          </div>
+          <div class="wb-section">
+            <h4>Discussion Questions (${w.discussion_questions.length})</h4>
+            <ul>${w.discussion_questions.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
+          </div>
+        </div>`;
+      }
+      document.getElementById("panel-workbook").innerHTML = `
+        <h2>Workbook Activities <span class="stat">${r.workbook.length} sets</span></h2>
+        ${wbHtml}
+      `;
+
+      // Image V1 / V2
+      renderImageV1(r);
+      renderImageV2(r);
+
+      // Review (Agent 5)
+      renderReview(r);
+
+      // 시트 링크
+      const btnSheet = document.getElementById("btn-sheet");
+      if (r.sheet_url) {
+        btnSheet.href = r.sheet_url;
+        btnSheet.classList.remove("hidden");
+      } else {
+        btnSheet.classList.add("hidden");
+      }
+
+      // 발행 버튼
+      _currentSheetRow = r.sheet_row || null;
+      const btnPublish = document.getElementById("btn-publish");
+      if (_currentSheetRow) {
+        btnPublish.classList.remove("hidden");
+        if (r.published) {
+          btnPublish.textContent = "✅ 발행완료";
+          btnPublish.disabled = true;
+          btnPublish.style.background = "#334155";
+          btnPublish.style.color = "#4ade80";
+        } else {
+          btnPublish.textContent = "📢 발행하기";
+          btnPublish.disabled = false;
+          btnPublish.style.background = "#f59e0b";
+          btnPublish.style.color = "#0f172a";
+        }
+      } else {
+        btnPublish.classList.add("hidden");
+      }
+    }
+
+    let _currentSheetRow = null;
+
+    async function publishArticle() {
+      if (!_currentSheetRow) return;
+      if (!confirm("이 기사를 발행할까요? 구글 시트에 발행완료로 기록됩니다.")) return;
+      const btn = document.getElementById("btn-publish");
+      btn.disabled = true;
+      btn.textContent = "발행 중...";
+      const resp = await fetch("/api/publish", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({sheet_row: _currentSheetRow}),
+      });
+      if (resp.ok) {
+        btn.textContent = "✅ 발행완료";
+        btn.style.background = "#334155";
+        btn.style.color = "#4ade80";
+      } else {
+        const data = await resp.json();
+        alert("발행 실패: " + data.error);
+        btn.disabled = false;
+        btn.textContent = "📢 발행하기";
+      }
+    }
+
+    function esc(s) {
+      if (!s) return "";
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    // ── Image panels ─────────────────────────────────────────────
+    let _imazinePopup = null;
+    let _currentImageUrl = "";
+    let _currentArticleText = "";
+
+    function _imagePreviewHtml(imgUrl, wrapId, badgeId, urlId) {
+      const imgHtml = imgUrl
+        ? `<img src="${esc(imgUrl)}" alt="article image" onclick="openLightbox(this.src)">`
+        : `<div class="img-no-image">이미지 없음</div>`;
+      return `
+        <div class="img-panel">
+          <div class="img-preview" id="${wrapId}">${imgHtml}</div>
+          <div class="img-info">
+            <p id="${urlId}">${imgUrl ? esc(imgUrl) : "이미지를 찾지 못했습니다."}</p>
+            <span class="stat" id="${badgeId}" style="display:inline-block;margin-bottom:12px">${imgUrl ? "자동선택" : "없음"}</span>
+          </div>
+        </div>`;
+    }
+
+    function renderImageV1(r) {
+      _currentImageUrl = r.image_url || "";
+      _currentArticleText = r.article?.text || "";
+      document.getElementById("panel-image-v1").innerHTML = `
+        <h2>이미지 V1 — 검색어 생성기</h2>
+        ${_imagePreviewHtml(_currentImageUrl, "img-wrap-v1", "img-badge-v1", "img-url-v1")}
+        <div style="margin-top:16px">
+          <a class="btn-search" href="https://jp7856.github.io/imazine/" target="imazine-popup"
+             onclick="openImageSite(event,'https://jp7856.github.io/imazine/')">imazine 열기</a>
+          <p style="margin-top:10px;font-size:.8rem;color:#475569">
+            검색어를 생성하고 이미지 URL을 붙여넣으면 자동 업데이트됩니다.
+          </p>
+        </div>`;
+    }
+
+    function renderImageV2(r) {
+      _currentImageUrl = r.image_url || "";
+      document.getElementById("panel-image-v2").innerHTML = `
+        <h2>이미지 V2 — Unsplash 직접 검색</h2>
+        ${_imagePreviewHtml(_currentImageUrl, "img-wrap-v2", "img-badge-v2", "img-url-v2")}
+        <div style="margin-top:16px">
+          <a class="btn-search" href="https://jp7856.github.io/ne-times-image-finder/" target="imazine-popup"
+             style="background:#3b82f6"
+             onclick="openImageSite(event,'https://jp7856.github.io/ne-times-image-finder/')">Image Finder 열기</a>
+          <p style="margin-top:10px;font-size:.8rem;color:#475569">
+            이미지를 클릭하면 바로 파이프라인에 반영됩니다.
+          </p>
+        </div>`;
+    }
+
+    function openImageSite(e, url) {
+      e.preventDefault();
+      _imazinePopup = window.open(url, "imazine-popup", "width=1000,height=700,left=200,top=100");
+    }
+
+    // ── Review panel (Agent 5) ───────────────────────────────────
+    function renderReview(r) {
+      const panel = document.getElementById("panel-review");
+      const rv = r.review;
+      if (!rv) {
+        panel.innerHTML = `
+          <h2>최종 검수</h2>
+          <p style="color:#475569;font-size:.85rem">검수 정보가 없습니다. (이 기록은 검수 단계 이전에 생성되었을 수 있습니다.)</p>`;
+        return;
+      }
+      const cls = rv.passed ? "approved" : "rejected";
+      const icon = rv.passed ? "✅" : "⛔";
+      const title = rv.passed ? "승인됨" : "거부됨";
+      panel.innerHTML = `
+        <h2>최종 검수 (Agent 5)</h2>
+        <div class="review-verdict ${cls}">
+          <span class="review-icon">${icon}</span>
+          <div>
+            <div class="review-title ${cls}">${title}</div>
+            <div class="review-status">상태: ${esc(rv.status)}</div>
+          </div>
+        </div>
+        <div class="review-notes">
+          <h4>판단 이유</h4>
+          ${esc(rv.notes) || "(없음)"}
+        </div>`;
+    }
+
+    // 팝업 ↔ 대시보드 메시지 처리
+    window.addEventListener("message", (event) => {
+      if (!event.data) return;
+
+      // 팝업이 준비됐다고 알려오면 기사 본문 전송
+      if (event.data.type === "ready") {
+        if (_imazinePopup && !_imazinePopup.closed) {
+          _imazinePopup.postMessage({ type: "prefill", text: _currentArticleText }, "*");
+        }
+        return;
+      }
+
+      // 팝업에서 이미지 선택 수신
+      if (event.data.imageUrl) {
+        _currentImageUrl = event.data.imageUrl;
+        _applyImage("img-wrap-v1", "img-badge-v1", "img-url-v1");
+        _applyImage("img-wrap-v2", "img-badge-v2", "img-url-v2");
+        if (_imazinePopup && !_imazinePopup.closed) _imazinePopup.close();
+      }
+    });
+
+    function _applyImage(wrapId, badgeId, urlId) {
+      const wrap = document.getElementById(wrapId);
+      const urlEl = document.getElementById(urlId);
+      const badgeEl = document.getElementById(badgeId);
+      if (!wrap) return;
+      wrap.innerHTML = `<img src="${esc(_currentImageUrl)}" alt="article image" onclick="openLightbox(this.src)">`;
+      if (urlEl) urlEl.textContent = _currentImageUrl;
+      if (badgeEl) { badgeEl.textContent = "선택됨"; badgeEl.style.background = "#1e3a5f"; badgeEl.style.color = "#93c5fd"; }
+    }
+
+    // ── Lightbox ─────────────────────────────────────────────────
+    function openLightbox(src) {
+      document.getElementById("lightbox-img").src = src;
+      document.getElementById("lightbox").classList.add("open");
+    }
+    function closeLightbox() {
+      document.getElementById("lightbox").classList.remove("open");
+    }
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeLightbox(); closeHistory(); } });
+
+    // ── History ───────────────────────────────────────────────────
+    async function openHistory() {
+      const res = await fetch("/api/history");
+      const list = await res.json();
+      const el = document.getElementById("history-list");
+      if (list.length === 0) {
+        el.innerHTML = '<p style="padding:20px;color:#475569;font-size:.85rem">아직 생성된 콘텐츠가 없습니다.</p>';
+      } else {
+        el.innerHTML = [...list].reverse().map(h => `
+          <div class="history-item" onclick="loadHistory(${h.idx})">
+            <span class="hi-badge">${h.level.toUpperCase()}</span>
+            <span class="hi-badge" style="background:#1e3a5f;color:#93c5fd">${h.section}</span>
+            <span class="hi-topic">${esc(h.topic)}</span>
+            <span class="hi-meta">${h.created_at}</span>
+          </div>`).join("");
+      }
+      document.getElementById("history-modal").classList.add("open");
+    }
+
+    function closeHistory() {
+      document.getElementById("history-modal").classList.remove("open");
+    }
+
+    async function loadHistory(idx) {
+      const res = await fetch(`/api/history/${idx}`);
+      const entry = await res.json();
+      closeHistory();
+      document.getElementById("result-area").classList.remove("hidden");
+      renderResult(entry.result);
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      document.querySelector('[data-tab="article"]').classList.add("active");
+      document.getElementById("panel-article").classList.add("active");
+    }
+  </script>
+</body>
+</html>
