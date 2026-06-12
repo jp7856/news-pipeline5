@@ -10,6 +10,7 @@ from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, join_room
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from config import LEVEL_CONFIG
 from orchestrator import Orchestrator, PipelineCancelled
 from agents.worksheet import WorksheetAgent
 from models import ContentPackage, Level, Section
@@ -78,9 +79,22 @@ def api_health():
 
 @app.route("/")
 def index():
-    levels = [{"value": lv.value, "label": lv.value.upper().replace("_", " ")} for lv in Level]
+    def short_cefr(value: str) -> str:
+        # "A2 (media range A1+ to A2+)" → "A2"
+        return LEVEL_CONFIG[value]["cefr"].split(" (")[0]
+
+    levels = [
+        {
+            "value": lv.value,
+            "label": lv.value.upper().replace("_", " "),
+            "cefr": short_cefr(lv.value),
+        }
+        for lv in Level
+    ]
     sections = [{"value": sc.value, "label": sc.value} for sc in Section]
-    return render_template("index.html", levels=levels, sections=sections)
+    # 레벨 → CEFR 전체 문자열 (미리보기·결과 배지용)
+    level_cefr = {lv.value: LEVEL_CONFIG[lv.value]["cefr"] for lv in Level}
+    return render_template("index.html", levels=levels, sections=sections, level_cefr=level_cefr)
 
 
 @app.route("/api/run", methods=["POST"])

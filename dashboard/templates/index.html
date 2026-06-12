@@ -155,7 +155,7 @@
       <input type="text" id="topic" placeholder="Enter topic (e.g. Climate change and young activists)">
       <select id="level">
         {% for lv in levels %}
-        <option value="{{lv.value}}" {% if lv.value == 'junior' %}selected{% endif %}>{{lv.label}}</option>
+        <option value="{{lv.value}}" {% if lv.value == 'junior' %}selected{% endif %}>{{lv.label}} · {{lv.cefr}}</option>
         {% endfor %}
       </select>
       <select id="section">
@@ -244,6 +244,13 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
     const socket = io();
+    const LEVEL_CEFR = {{ level_cefr | tojson }};
+    // 레벨의 CEFR 배지 — 짧은 표기 + 마우스 오버 시 매체 범위 전체
+    function cefrStat(level) {
+      const full = LEVEL_CEFR[level] || "";
+      if (!full) return "";
+      return `<span class="stat" style="background:#1e3a5f;color:#93c5fd" title="${full}">CEFR ${full.split(" (")[0]}</span>`;
+    }
     const logBox = document.getElementById("log-box");
     const badge = document.getElementById("status-badge");
     const btnRun = document.getElementById("btn-run");
@@ -433,6 +440,7 @@
           <span class="stat">${level.toUpperCase().replace('_',' ')}</span>
           <span class="stat">${section}</span>
           <span class="stat">${article.word_count} words</span>
+          ${cefrStat(level)}
           <span class="stat ${plagiarismPassed ? 'pass' : 'fail'}">${plagiarismPassed ? 'PLAGIARISM PASS' : 'PLAGIARISM WARNING'}</span>
         </div>
         <div class="article-text">${esc(article.text)}</div>
@@ -495,6 +503,7 @@
           <span class="stat">${r.level.toUpperCase().replace('_',' ')}</span>
           <span class="stat">${r.section}</span>
           <span class="stat">${r.article.word_count} words</span>
+          ${cefrStat(r.level)}
         </div>
         <div class="article-text">${esc(r.article.text)}</div>
         <h2 style="margin-top:20px">Vocabulary</h2>
@@ -785,7 +794,7 @@
       } else {
         el.innerHTML = [...list].reverse().map(h => `
           <div class="history-item" onclick="loadHistory(${h.idx})">
-            <span class="hi-badge">${h.level.toUpperCase().replace('_',' ')}</span>
+            <span class="hi-badge" title="${LEVEL_CEFR[h.level] || ''}">${h.level.toUpperCase().replace('_',' ')}</span>
             <span class="hi-badge" style="background:#1e3a5f;color:#93c5fd">${h.section}</span>
             <span class="hi-topic">${esc(h.topic)}</span>
             <span class="hi-meta">${h.cost_krw ? h.cost_krw.toLocaleString() + "원 · " : ""}${h.created_at}</span>
