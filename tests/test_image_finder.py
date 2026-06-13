@@ -12,10 +12,11 @@ from agents.image_finder import ImageFinderAgent
 BASE = "https://images.unsplash.com/photo-{n}"
 
 
-def make_agent(candidates_by_query):
+def make_agent(candidates_by_query, ai_queries=None):
     agent = ImageFinderAgent.__new__(ImageFinderAgent)
     agent._log = lambda m: None
     agent._search_images = lambda q: candidates_by_query.get(q, [])
+    agent._generate_queries = lambda p: list(ai_queries or [])
     return agent
 
 
@@ -67,5 +68,21 @@ for _ in range(60):
     picked.add(ImageFinderAgent._normalize(pkg.image_url))
 assert len(picked) > 1, "항상 같은 이미지만 선택됨"
 print("diversity OK")
+
+# 5) AI 생성 검색어가 어휘 폴백보다 우선 시도됨 (관련성 우선)
+agent = make_agent(
+    {"people voting booth": [BASE.format(n=7)], "election vote": [BASE.format(n=1)]},
+    ai_queries=["people voting booth"],
+)
+pkg = make_pkg()
+agent.run(pkg)
+assert pkg.image_url.startswith(BASE.format(n=7)), pkg.image_url
+
+# AI 검색어 실패(빈 리스트) 시 어휘 폴백으로 진행
+agent = make_agent({"election vote": [BASE.format(n=1)]}, ai_queries=[])
+pkg = make_pkg()
+agent.run(pkg)
+assert pkg.image_url.startswith(BASE.format(n=1))
+print("ai query priority OK")
 
 print("ALL TESTS PASSED")
