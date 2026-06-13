@@ -23,7 +23,8 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
          → FactCheck (출처 대조 사실 점검 — 불일치 시 1회 재작성 + 표절 재검사)
          → 초안 미리보기 + 대화형 AI 수정/질문 (Reviser 채팅, 수정 시 표절 재검사)
          → [이후 작업 진행] → [Phase 2] Editor(자동반영) → Crossword + Workbook
-         → Translator → ImageFinder → Reviewer(검수, 거부 시 fix_targets만 재작성 후 재검수 최대 2회)
+         → Translator → ImageFinder(기존 이미지 제외 + 후보 중 선택 — 매체별 변별력)
+         → Reviewer(검수, 거부 시 fix_targets만 재작성 후 재검수 최대 2회)
          → Worksheet(시트 저장 — 통과 '작성완료' / 최종 거부 '검수거부' / 검수 실패 '검수오류')
          → [발행하기] → 시트 상태 '발행완료' → /api/published → 발행 사이트 노출
 중단: Running 배지 클릭 (단계 사이 PipelineCancelled)

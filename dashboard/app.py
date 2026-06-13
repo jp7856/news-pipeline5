@@ -336,6 +336,10 @@ def _run_phase2(sid: str, state: dict):
     try:
         orchestrator: Orchestrator = state["orchestrator"]
         orchestrator._cancel_event = _cancel_events.get(sid)
+        # 기존 기사들이 쓴 이미지를 제외 목록으로 전달 (같은 주제 매체별 이미지 중복 방지)
+        orchestrator.used_image_urls = [
+            e.get("result", {}).get("image_url", "") for e in _history
+        ]
         pkg, sheet_url = orchestrator.run_phase2(state)
         result = _serialize(pkg, sheet_url)
         result["sheet_row"] = getattr(orchestrator, "sheet_row", None)

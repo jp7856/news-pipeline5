@@ -39,6 +39,8 @@ class Orchestrator:
         self._sheet_url = ""
         self._cancel_event = cancel_event
         self._start = None
+        # 기존 기사들이 사용한 이미지 URL (대시보드가 히스토리에서 주입 — 이미지 중복 방지)
+        self.used_image_urls: list[str] = []
 
     def _check_cancel(self):
         if self._cancel_event is not None and self._cancel_event.is_set():
@@ -114,10 +116,10 @@ class Orchestrator:
         translator = TranslatorAgent(log_callback=self._log)
         package = translator.run(package)
 
-        # ── Agent 3: 이미지 탐색 ──────────────────────────────────
+        # ── Agent 3: 이미지 탐색 (기존 기사 이미지 제외 — 매체별 변별력) ──
         self._check_cancel()
         image_finder = ImageFinderAgent(log_callback=self._log)
-        package = image_finder.run(package)
+        package = image_finder.run(package, exclude_urls=self.used_image_urls)
 
         # ── Agent 5: 최종 검수 (거부 시 자동 재작성, 최대 2회) ────
         self._check_cancel()
