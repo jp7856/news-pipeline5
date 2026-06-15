@@ -82,7 +82,11 @@ Paragraphs: {cfg['paragraph_count']} short paragraphs (1–3 sentences each, lik
 {self._guideline_hint(guidelines, cfg)}
 
 Instructions:
-1. Search your knowledge for accurate, up-to-date information on this topic.
+1. TOPIC STRICTNESS: Write ONLY about the literal subject of the topic as given.
+   Never write about other events or issues where the topic word may appear as a
+   metaphor or allegory (e.g. topic "mirror" → write about mirrors, NOT about
+   political events described as "a mirror of society"). If the topic is in Korean,
+   interpret it literally and write about that exact subject in English.
 2. FACTS ONLY: every statement must be factually accurate. Never invent or
    exaggerate facts, numbers, dates, names, quotes, or events. If a detail is
    uncertain, leave it out — an article based on false information is forbidden.
