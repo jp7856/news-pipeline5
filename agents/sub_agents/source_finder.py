@@ -20,14 +20,16 @@ logger = logging.getLogger(__name__)
 
 # 출처로 허용할 교육용 뉴스 + 접근 가능한 신뢰 사이트
 # (BBC/Reuters/Guardian/NYT/AP는 Anthropic 크롤러를 차단해 사용 불가)
+# sciencedaily.com 제외 — 연구 논문 보도자료만 모아두는 사이트라 교육용 기사 아님
 ALLOWED_DOMAINS = [
     # 어린이/학생 교육용 뉴스
     "timeforkids.com", "dogonews.com", "kidsnews.com.au",
     "newsforkids.net", "teachingkidsnews.com", "youngzine.org",
     "snexplores.org", "kids.nationalgeographic.com",
-    # 신뢰 가능한 일반 사이트
+    # 접근 가능한 일반 뉴스·교육 사이트
     "time.com", "npr.org", "smithsonianmag.com",
-    "nasa.gov", "nationalgeographic.com", "sciencedaily.com",
+    "nasa.gov", "nationalgeographic.com",
+    "livescience.com", "earth.com", "mentalfloss.com",
 ]
 
 
