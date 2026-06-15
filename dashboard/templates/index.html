@@ -273,7 +273,22 @@
     const btnRun = document.getElementById("btn-run");
     let _mySid = "";
 
-    socket.on("connect", () => { _mySid = socket.id; });
+    // Phase 1이 40~60초 걸리는 동안 socket.id가 바뀌면 article_ready를 못 받는 문제 방지.
+    // sessionStorage 기반 지속 세션 ID를 쓰면 재연결 후에도 같은 room에서 이벤트 수신.
+    const _sessionId = (() => {
+      let id = sessionStorage.getItem("pipe_session_id");
+      if (!id) {
+        id = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+          (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+        sessionStorage.setItem("pipe_session_id", id);
+      }
+      return id;
+    })();
+
+    socket.on("connect", () => {
+      _mySid = socket.id;
+      socket.emit("register_session", {session_id: _sessionId});
+    });
 
     // Tab switching
     document.querySelectorAll(".tab").forEach(tab => {
@@ -331,7 +346,9 @@
       setRunning(false);
       setReviseBusy(false);
       renderArticleOnly(article, plagiarism_passed, level, section, sub_level);
-      document.getElementById("continue-bar").classList.add("show");
+      const bar = document.getElementById("continue-bar");
+      bar.classList.add("show");
+      bar.scrollIntoView({behavior: "smooth", block: "start"});
     });
 
     let _clientRunning = false;
@@ -348,7 +365,7 @@
       await fetch("/api/stop", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({sid: _mySid}),
+        body: JSON.stringify({sid: _sessionId}),
       });
     }
 
@@ -359,7 +376,7 @@
       const resp = await fetch("/api/continue", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({sid: _mySid}),
+        body: JSON.stringify({sid: _sessionId}),
       });
       if (!resp.ok) {
         const data = await resp.json();
@@ -420,7 +437,7 @@
       const resp = await fetch("/api/revise", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({sid: _mySid, instruction}),
+        body: JSON.stringify({sid: _sessionId, instruction}),
       });
       if (!resp.ok) {
         const data = await resp.json();
@@ -492,7 +509,7 @@
           topic,
           level: document.getElementById("level").value,
           section: document.getElementById("section").value,
-          sid: _mySid,
+          sid: _sessionId,
           source_url: document.getElementById("source-url").value.trim(),
         }),
       });

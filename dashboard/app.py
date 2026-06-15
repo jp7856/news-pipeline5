@@ -22,6 +22,15 @@ app.config["SECRET_KEY"] = "news-pipeline-secret"
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+
+@socketio.on("register_session")
+def on_register_session(data):
+    """클라이언트 재연결 시 지속 세션 ID로 room에 참가 — socket.id 변경에 무관하게 이벤트 수신."""
+    session_id = (data or {}).get("session_id", "")
+    if session_id:
+        join_room(session_id)
+
+
 # sid → 현재 실행 중 여부
 _running: dict[str, bool] = {}
 
