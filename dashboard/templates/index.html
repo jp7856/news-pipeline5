@@ -156,9 +156,11 @@
   <header>
     <h1>NE Times Content Pipeline</h1>
     <span class="badge" id="status-badge">Ready</span>
-    <span class="badge" id="usage-badge" style="margin-left:auto;background:#1e3a5f;color:#93c5fd;cursor:pointer"
-          title="이번 달 API 사용액 — 클릭하면 월별 그래프 표시"
-          onclick="openUsageChart()"></span>
+    <div id="usage-badge" onclick="openUsageChart()" title="클릭하면 월별 그래프 표시"
+         style="margin-left:auto;cursor:pointer;text-align:right;line-height:1.45;user-select:none">
+      <div style="font-size:.68rem;color:#64748b">이번 달 누적 사용량 📊</div>
+      <div id="usage-badge-val" style="font-size:.8rem;color:#93c5fd;font-weight:600"></div>
+    </div>
   </header>
 
   <main>
@@ -249,13 +251,16 @@
   <!-- Usage chart modal -->
   <div id="usage-modal" onclick="if(event.target===this)closeUsageChart()"
        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:910;align-items:center;justify-content:center">
-    <div style="background:#1e293b;border-radius:14px;width:580px;max-width:96vw;padding:24px;border:1px solid #334155">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <h3 style="font-size:.95rem;font-weight:600">월별 API 사용액</h3>
+    <div style="background:#1e293b;border-radius:14px;width:620px;max-width:96vw;padding:24px;border:1px solid #334155">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <h3 style="font-size:.9rem;font-weight:600;color:#e2e8f0">월별 API 사용량 · 비용
+          <span style="font-size:.75rem;font-weight:400;color:#64748b;margin-left:6px">(매월 1일 초기화 후 누적)</span>
+        </h3>
         <button onclick="closeUsageChart()" style="background:none;border:none;color:#94a3b8;font-size:1.4rem;cursor:pointer;padding:0">&times;</button>
       </div>
-      <div id="usage-chart" style="display:flex;align-items:flex-end;gap:6px;padding:0 4px 8px;min-height:160px"></div>
-      <p id="usage-chart-total" style="font-size:.8rem;color:#64748b;margin-top:12px;text-align:right"></p>
+      <div id="usage-stats-row" style="display:flex;gap:16px;margin-bottom:18px"></div>
+      <div id="usage-chart" style="display:flex;flex-direction:column;gap:8px"></div>
+      <p id="usage-chart-note" style="font-size:.72rem;color:#475569;margin-top:14px"></p>
     </div>
   </div>
 
@@ -335,8 +340,9 @@
       try {
         const res = await fetch("/api/usage");
         _usageData = await res.json();
-        document.getElementById("usage-badge").textContent =
-          `💰 이번달 약 ${_usageData.current_month_krw.toLocaleString()}원 · ${_usageData.current_month_count}건`;
+        const val = document.getElementById("usage-badge-val");
+        if (val) val.textContent =
+          `${_usageData.current_month_krw.toLocaleString()}원 · ${_usageData.current_month_count}건`;
       } catch (e) { /* 시트 미연결 등 — 표시만 생략 */ }
     }
     refreshUsage();
@@ -344,22 +350,37 @@
     function openUsageChart() {
       if (!_usageData || !_usageData.monthly || _usageData.monthly.length === 0) return;
       const months = _usageData.monthly;
+      const cur = _usageData.current_month;
       const maxKrw = Math.max(...months.map(m => m.krw), 1);
-      const BAR_MAX_H = 140;
+
+      document.getElementById("usage-stats-row").innerHTML = [
+        {label:"전체 합계 비용", val:_usageData.total_krw.toLocaleString()+"원", color:"#4ade80"},
+        {label:"전체 기사 수",   val:_usageData.count+"건",                      color:"#93c5fd"},
+        {label:"집계 개월",      val:months.length+"개월",                       color:"#e2e8f0"},
+      ].map(s => `
+        <div style="flex:1;background:#0f172a;border-radius:10px;padding:12px 16px">
+          <div style="font-size:.7rem;color:#64748b;margin-bottom:5px">${s.label}</div>
+          <div style="font-size:1.1rem;font-weight:700;color:${s.color}">${s.val}</div>
+        </div>`).join("");
+
       document.getElementById("usage-chart").innerHTML = months.map(m => {
-        const h = Math.max(Math.round(m.krw / maxKrw * BAR_MAX_H), 4);
-        const cur = m.month === _usageData.current_month;
-        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:36px">
-          <span style="font-size:.68rem;color:#94a3b8">${m.krw.toLocaleString()}</span>
-          <div style="width:100%;background:${cur ? '#3b82f6' : '#334155'};border-radius:4px 4px 0 0;height:${h}px"></div>
-          <span style="font-size:.72rem;color:${cur ? '#93c5fd' : '#64748b'};font-weight:${cur ? 700 : 400}">${m.month.slice(5)}월</span>
-          <span style="font-size:.68rem;color:#475569">${m.count}건</span>
-        </div>`;
+        const isCur = m.month === cur;
+        const pct = Math.max(Math.round(m.krw / maxKrw * 100), 2);
+        return `
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="min-width:52px;font-size:.78rem;font-weight:${isCur?600:400};color:${isCur?'#4ade80':'#64748b'}">${m.month.replace('-','.')}</span>
+            <div style="flex:1;height:24px;background:#0f172a;border-radius:5px;overflow:hidden;position:relative">
+              <div style="position:absolute;inset:0;width:${pct}%;background:${isCur?'#22c55e':'#334155'};border-radius:5px"></div>
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.75rem;color:${isCur?'#dcfce7':'#94a3b8'};white-space:nowrap">
+                ${m.krw.toLocaleString()}원 · ${m.count}건
+              </span>
+            </div>
+          </div>`;
       }).join("");
-      document.getElementById("usage-chart-total").textContent =
-        `전체 누적 ${_usageData.total_krw.toLocaleString()}원 · ${_usageData.count}건`;
-      const modal = document.getElementById("usage-modal");
-      modal.style.display = "flex";
+
+      document.getElementById("usage-chart-note").textContent =
+        "초록색 막대 = 이번 달 (진행 중) · 매월 1일 0부터 다시 누적";
+      document.getElementById("usage-modal").style.display = "flex";
     }
 
     function closeUsageChart() {
