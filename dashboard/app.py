@@ -196,7 +196,7 @@ def api_revise():
     if _running.get(sid):
         return jsonify({"error": "Pipeline already running."}), 409
     if sid not in _pending:
-        return jsonify({"error": "수정할 초안이 없습니다. 먼저 Generate 하세요."}), 404
+        return jsonify({"error": "세션이 만료됐습니다. 서버가 재시작되면 초안이 사라집니다. 다시 Generate 해주세요.", "session_expired": True}), 404
 
     _running[sid] = True
     thread = threading.Thread(target=_run_revise, args=(sid, instruction), daemon=True)

@@ -31,8 +31,8 @@ ALLOWED_DOMAINS = [
     # 과학·기술·문화 (정치 시사 혼입 최소 — time.com/npr.org 제외)
     "smithsonianmag.com", "nasa.gov", "nationalgeographic.com",
     "livescience.com", "earth.com", "mentalfloss.com",
-    "space.com", "discovermagazine.com", "popularmechanics.com",
-    "wired.com", "worldwildlife.org",
+    "space.com", "discovermagazine.com",
+    "worldwildlife.org",
 ]
 
 

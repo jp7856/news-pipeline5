@@ -502,9 +502,17 @@
       });
       if (!resp.ok) {
         const data = await resp.json();
-        alert("Error: " + data.error);
         setReviseBusy(false);
         setRunning(false);
+        if (data.session_expired) {
+          hideContinueBar();
+          _clientRunning = false;
+          badge.textContent = "Ready";
+          badge.className = "badge";
+          alert("⚠️ " + data.error);
+        } else {
+          alert("Error: " + data.error);
+        }
       }
     }
 
