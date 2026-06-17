@@ -11,6 +11,7 @@ import json
 import logging
 import re
 from typing import Callable
+from urllib.parse import urlparse
 
 import anthropic
 
@@ -100,11 +101,36 @@ def search_real_sources(
         return []
 
 
+def _domain_of(url: str) -> str:
+    """URL에서 비교용 도메인을 추출한다 (www. 제거)."""
+    try:
+        host = urlparse(url).netloc.lower()
+    except Exception:
+        return url
+    return host[4:] if host.startswith("www.") else host
+
+
+def _dedup_by_domain(sources: list[dict], max_results: int) -> list[dict]:
+    """도메인당 최대 1건만 남겨 출처 편향(한 도메인 독점)을 방지한다."""
+    out: list[dict] = []
+    seen_domains: set[str] = set()
+    for s in sources:
+        d = _domain_of(s.get("url", ""))
+        if not d or d in seen_domains:
+            continue
+        seen_domains.add(d)
+        out.append(s)
+        if len(out) >= max_results:
+            break
+    return out
+
+
 def _parse_sources(message, max_results: int) -> list[dict]:
     """응답에서 출처 목록을 추출한다.
 
     1차: 최종 text 블록의 JSON 배열 (모델이 검색 결과에서 선별한 것)
     2차: web_search_tool_result 블록의 원시 검색 결과
+    두 경로 모두 도메인당 1건으로 강제해 출처 편향을 방지한다.
     """
     # 1차: text 블록에서 JSON 배열 파싱
     for block in reversed(message.content):
@@ -126,12 +152,12 @@ def _parse_sources(message, max_results: int) -> list[dict]:
                 if isinstance(it, dict) and it.get("url", "").startswith("http")
             ]
             if sources:
-                return sources[:max_results]
+                return _dedup_by_domain(sources, max_results)
         except (json.JSONDecodeError, AttributeError):
             continue
 
-    # 2차: 원시 검색 결과 블록
-    sources: list[dict] = []
+    # 2차: 원시 검색 결과 블록 — 후보를 모두 모은 뒤 도메인당 1건으로 추림
+    candidates: list[dict] = []
     seen: set[str] = set()
     for block in message.content:
         if block.type != "web_search_tool_result":
@@ -144,12 +170,10 @@ def _parse_sources(message, max_results: int) -> list[dict]:
             if not url or url in seen:
                 continue
             seen.add(url)
-            sources.append({
+            candidates.append({
                 "title": getattr(r, "title", ""),
                 "url": url,
                 "snippet": "",
                 "date": "unknown",
             })
-            if len(sources) >= max_results:
-                return sources
-    return sources
+    return _dedup_by_domain(candidates, max_results)
