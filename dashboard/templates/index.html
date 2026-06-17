@@ -539,9 +539,9 @@
           <span class="stat ${plagiarismPassed ? 'pass' : 'fail'}">${plagiarismPassed ? 'PLAGIARISM PASS' : 'PLAGIARISM WARNING'}</span>
         </div>
         <div class="article-text">${esc(article.text)}</div>
-        <h2 style="margin-top:20px">Vocabulary <span class="stat">${article.vocabulary.length} words</span></h2>
-        ${vocabCardsHtml(article.vocabulary)}
-        <h2 style="margin-top:20px">Sources</h2>
+        <h2 style="margin-top:20px">Vocabulary</h2>
+        <div>${article.vocabulary.map(w => `<span class="vocab-tag">${esc(w)}</span>`).join("")}</div>
+        <h2 style="margin-top:16px">Sources</h2>
         ${article.sources.map(s => `<a class="source-link" href="${esc(s)}" target="_blank">${esc(s)}</a>`).join("")}
       `;
     }
@@ -601,9 +601,9 @@
           ${cefrStat(r.level, r.sub_level)}
         </div>
         <div class="article-text">${esc(r.article.text)}</div>
-        <h2 style="margin-top:20px">Vocabulary <span class="stat">${r.article.vocabulary.length} words</span></h2>
-        ${vocabCardsHtml(r.article.vocabulary)}
-        <h2 style="margin-top:20px">Sources</h2>
+        <h2 style="margin-top:20px">Vocabulary</h2>
+        <div>${r.article.vocabulary.map(w => `<span class="vocab-tag">${esc(w)}</span>`).join("")}</div>
+        <h2 style="margin-top:16px">Sources</h2>
         ${r.article.sources.map(s => `<a class="source-link" href="${esc(s)}" target="_blank">${esc(s)}</a>`).join("")}
       `;
 
@@ -757,27 +757,6 @@
     function esc(s) {
       if (!s) return "";
       return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    }
-
-    // "small A1 · 작은" → {word, level, ko}  /  plain "word" → {word, "", ""}
-    function parseVocab(raw) {
-      const m = String(raw).match(/^(.+?)\s+([A-Z]\d[\w+]*)\s*[·•\-]\s*(.+)$/u);
-      if (m) return {word: m[1].trim(), level: m[2], ko: m[3].trim()};
-      return {word: raw, level: "", ko: ""};
-    }
-
-    function vocabCardsHtml(vocab) {
-      if (!vocab || !vocab.length) return "";
-      return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-top:12px">
-        ${vocab.map(w => {
-          const v = parseVocab(w);
-          return `<div style="background:#0f172a;border:1px solid #1e3a5f;border-radius:12px;padding:16px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px">
-            <div style="font-size:.98rem;font-weight:700;color:#f1f5f9;letter-spacing:.01em">${esc(v.word)}</div>
-            ${v.level ? `<div style="font-size:.65rem;background:#1e3a5f;color:#93c5fd;border-radius:999px;padding:2px 8px;font-weight:700">${esc(v.level)}</div>` : ""}
-            ${v.ko   ? `<div style="font-size:.75rem;color:#64748b;line-height:1.4">${esc(v.ko)}</div>` : ""}
-          </div>`;
-        }).join("")}
-      </div>`;
     }
 
     // ── Image panels ─────────────────────────────────────────────
