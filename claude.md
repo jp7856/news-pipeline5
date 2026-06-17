@@ -82,7 +82,9 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼 + 
 ## 주의사항 (재발 방지)
 
 - Google CSE는 신규 고객 폐쇄 — 다시 시도하지 말 것
-- BBC/Reuters/Guardian/NYT/AP는 allowed_domains에 넣으면 400
+- BBC/Reuters/Guardian/NYT/AP/wired.com/popularmechanics.com는 allowed_domains에 넣으면 400 (Anthropic 크롤러 차단)
+  - 차단 도메인이 목록에 단 하나라도 있으면 web_search 전체가 400 → 출처 0건
+- ALLOWED_DOMAINS은 교육 적합 10개로 한정: 학생전용 7(timeforkids/dogonews/kidsnews.com.au/newsforkids/teachingkidsnews/youngzine/snexplores) + 신뢰최상위 3(nasa.gov/nationalgeographic/smithsonianmag)
 - Railway 변수 수정 후 반드시 Deploy(Apply changes) 클릭
 - 구글 서비스 계정 키는 "키 추가→새 키 만들기"로만 발급됨 (재다운로드 불가)
 - 시트는 v3와 v4가 같은 것을 공유 중 — 분리 필요 시 새 시트 + 서비스 계정 공유 + SHEET_ID 교체
