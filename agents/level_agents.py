@@ -65,3 +65,9 @@ def create_agent1(
     """레벨에 맞는 에이전트 1-X를 생성한다 (미등록 레벨은 공통 베이스로 폴백)."""
     cls = AGENT1_BY_LEVEL.get(level, ContentProducerAgent)
     return cls(log_callback=log_callback, cancel_check=cancel_check)
+
+
+def guideline_file_for_level(level: Level) -> str | None:
+    """레벨에 해당하는 지침 마크다운 파일명을 반환한다 (검수 에이전트가 사용)."""
+    cls = AGENT1_BY_LEVEL.get(level)
+    return getattr(cls, "GUIDELINE_FILE", None)

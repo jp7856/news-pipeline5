@@ -45,6 +45,24 @@ class ReviewerAgent:
 
     def _review(self, pkg: ContentPackage) -> tuple[bool, str, list]:
         article = pkg.article
+
+        # 해당 신문(레벨)의 작성 지침 마크다운을 검수 기준으로도 강제한다.
+        # → 지침에 쓴 규칙이 Writer뿐 아니라 검수에서도 지켜야 하는 규칙이 된다.
+        from agents.content_producer import load_guideline_body
+        from agents.level_agents import guideline_file_for_level
+
+        guideline = load_guideline_body(guideline_file_for_level(pkg.level))
+        guideline_block = guideline_criterion = ""
+        if guideline:
+            guideline_block = (
+                f"\n이 신문의 작성 지침 (기사는 아래 지침을 반드시 준수해야 함):\n"
+                f"-----\n{guideline}\n-----\n"
+            )
+            guideline_criterion = (
+                '\n9. 위 "작성 지침"을 준수했는가? (문체·어휘·문단 구성·금지 사항 등 '
+                '지침을 명백히 위반하면 거부하고 fix_targets에 "article"을 넣으세요)'
+            )
+
         prompt = f"""아래 NE Times 교육용 기사 패키지를 검수해주세요.
 
 레벨: {pkg.level.value}
@@ -64,7 +82,7 @@ class ReviewerAgent:
 
 한국어 요약 (전체):
 {article.summary_ko if article.summary_ko else "(없음)"}
-
+{guideline_block}
 다음 기준으로 평가하세요:
 1. 기사 본문이 교육 목적에 적합하고 레벨에 맞는 수준인가?
 2. 기사 내용이 사실에 부합하는가? (명백한 허위·날조·과장된 수치나 인용의 징후가 있으면 거부)
@@ -73,7 +91,7 @@ class ReviewerAgent:
 5. 표절 검사를 통과했는가?
 6. 크로스워드와 워크북이 생성되었는가?
 7. 스팸/광고/부적절한 내용이 없는가?
-8. 토픽과 섹션이 잘 어울리는가? (다소 어색해도 교육적 가치가 있으면 통과)
+8. 토픽과 섹션이 잘 어울리는가? (다소 어색해도 교육적 가치가 있으면 통과){guideline_criterion}
 
 아래 JSON 형식으로만 응답하세요. 거부(approved=false)인 경우 fix_targets에
 재작성이 필요한 부분을 골라 넣으세요 (선택지: "article", "translation", "crossword", "workbook"):

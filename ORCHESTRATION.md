@@ -58,7 +58,7 @@
 | 에이전트 2 | 한국어 번역 (레벨별 번역 문체) | `agents/translator.py` |
 | 에이전트 3 | 이미지 탐색 (폴백 체인) | `agents/image_finder.py` |
 | 에이전트 4 | 구글 시트 저장 + 발행 상태 관리 | `agents/worksheet.py` |
-| 에이전트 5 | 최종 검수 — 거부 시 fix_targets 반환 | `agents/reviewer.py` |
+| 에이전트 5 | 최종 검수 — 거부 시 fix_targets 반환. **해당 레벨 지침 MD를 읽어 위반 시 거부** | `agents/reviewer.py` |
 
 ### 서브에이전트 (에이전트 1 내부)
 
@@ -108,6 +108,11 @@
   "Newspaper-specific writing guidelines"로 그대로 주입됩니다.**
   - 본문이 비어 있으면(주석만 있으면) 주입하지 않고 기본 프롬프트만 사용합니다.
   - 한국어/영어 모두 사용 가능. 주입되길 원치 않는 메모는 HTML 주석으로.
+  - **검수 강제**: 같은 지침 본문이 검수(에이전트 5) 프롬프트에도 주입되어,
+    Writer가 어겨도 검수가 거부 → 재작성합니다. 즉 지침에 쓴 규칙은
+    "강한 지시"가 아니라 "강제 규칙"이 됩니다 (로딩 단일 진입점:
+    `content_producer.load_guideline_body`). 강하게 만들고 싶은 규칙은
+    지침 상단에 명령형(MUST/NEVER)으로 두면 됩니다.
 - 단어 수·단락 수·CEFR 같은 구조 사양은 `config.py LEVEL_CONFIG`가 기준입니다.
   지침에서 다른 값을 지시하면 프롬프트 안에서 충돌하므로, 사양 변경은 LEVEL_CONFIG를 수정하세요.
 - 지침에 담기 좋은 내용: 문체·톤, 단어/문법 허용 범위, 단락 구성 패턴, 제목 규칙,

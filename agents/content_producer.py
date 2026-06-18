@@ -32,6 +32,22 @@ logger = logging.getLogger(__name__)
 GUIDELINES_DIR = Path(__file__).parent / "guidelines"
 
 
+def load_guideline_body(guideline_file: str | None) -> str:
+    """지침 마크다운 본문(HTML 주석 제거)을 반환한다.
+
+    파일명이 없거나, 파일을 못 읽거나, 주석을 뺀 본문이 비면 빈 문자열.
+    Writer(작성)와 Reviewer(검수)가 같은 지침을 공유하기 위한 단일 진입점.
+    """
+    if not guideline_file:
+        return ""
+    path = GUIDELINES_DIR / guideline_file
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL).strip()
+
+
 class ContentProducerAgent:
     # 레벨별 서브클래스(agents/level_agents.py)가 재정의
     AGENT_LABEL: str = "Agent1"
@@ -240,16 +256,10 @@ class ContentProducerAgent:
 
         규칙은 ORCHESTRATION.md 3절 참조 — 본문 전체가 Writer 프롬프트에 주입된다.
         """
-        if not self.GUIDELINE_FILE:
+        if self.GUIDELINE_FILE and not (GUIDELINES_DIR / self.GUIDELINE_FILE).exists():
+            self._log(f"[{self.AGENT_LABEL}] 지침 파일 없음 (기본 프롬프트 사용): {self.GUIDELINE_FILE}")
             return ""
-        path = GUIDELINES_DIR / self.GUIDELINE_FILE
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError as e:
-            self._log(f"[{self.AGENT_LABEL}] 지침 파일 로드 실패 (기본 프롬프트 사용): {e}")
-            return ""
-        body = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL).strip()
-        return body
+        return load_guideline_body(self.GUIDELINE_FILE)
 
     def _scrape_article(self, url: str) -> str:
         """URL에서 기사 본문을 추출한다."""
