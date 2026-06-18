@@ -117,34 +117,55 @@ class ContentProducerAgent:
 
         self._cancel_check()
 
-        # ── Step 2: 표절 검사 ─────────────────────────────────────
-        plagiarism_report = self._plagcheck.run(article)
+        # ── Step 2: 표절 검사 + 워드카운트 (둘 다 만족할 때까지 재작성, 최대 3회) ──
+        # 초안 단계에서 분량을 맞춘다 — 범위 밖 초안을 검토에 넘기지 않기 위함.
+        # 목표 범위는 config가 단일 기준 (Writer·검수와 동일 소스).
+        _cfg, _ = self._writer._merge_config(level, sub_level)
+        wc_range = _cfg.get("word_count_range", "")
 
-        # 통과할 때까지 재작성 (최대 3회) — 실패 항목을 구체적으로 피드백
+        plagiarism_report = self._plagcheck.run(article)
         max_retries = 3
         attempt = 0
-        while not plagiarism_report.passed and attempt < max_retries:
+        while attempt < max_retries:
+            wc_ok = self._writer._word_count_in_range(article.word_count, wc_range)
+            if plagiarism_report.passed and wc_ok:
+                break
             attempt += 1
             self._cancel_check()
-            failed_items = "\n".join(
-                f"- {key}: {val.get('note', '')}"
-                for key, val in plagiarism_report.checklist.items()
-                if not val.get("pass")
-            )
-            self._log(f"[{self.AGENT_LABEL}] 표절 위험 감지 — 재작성 {attempt}/{max_retries}회")
-            # 어느 부분이 걸렸는지 로그에 명시
-            for key, val in plagiarism_report.checklist.items():
-                if not val.get("pass"):
-                    self._log(f"[{self.AGENT_LABEL}]   ⤷ 걸린 항목: {key} — {val.get('note', '')[:120]}")
-            if plagiarism_report.notes:
-                self._log(f"[{self.AGENT_LABEL}]   ⤷ 비고: {plagiarism_report.notes[:120]}")
+
+            notes: list[str] = []
+            if not plagiarism_report.passed:
+                failed_items = "\n".join(
+                    f"- {key}: {val.get('note', '')}"
+                    for key, val in plagiarism_report.checklist.items()
+                    if not val.get("pass")
+                )
+                self._log(f"[{self.AGENT_LABEL}] 표절 위험 감지 — 재작성 {attempt}/{max_retries}회")
+                # 어느 부분이 걸렸는지 로그에 명시
+                for key, val in plagiarism_report.checklist.items():
+                    if not val.get("pass"):
+                        self._log(f"[{self.AGENT_LABEL}]   ⤷ 걸린 항목: {key} — {val.get('note', '')[:120]}")
+                if plagiarism_report.notes:
+                    self._log(f"[{self.AGENT_LABEL}]   ⤷ 비고: {plagiarism_report.notes[:120]}")
+                notes.append(
+                    f"The previous version failed these plagiarism checks:\n{failed_items}\n"
+                    f"Notes: {plagiarism_report.notes}\n"
+                    f"Fix each failed item specifically. Use stronger paraphrasing, "
+                    f"original sentence structure, and your own framing of the facts."
+                )
+            if not wc_ok:
+                self._log(
+                    f"[{self.AGENT_LABEL}] 워드카운트 {article.word_count} 목표({wc_range}) 벗어남 "
+                    f"— 재작성 {attempt}/{max_retries}회"
+                )
+                notes.append(
+                    f"The article has {article.word_count} words, which is OUTSIDE the required "
+                    f"range of {wc_range} words. Adjust the length to fall WITHIN {wc_range} words "
+                    f"— keep the reading level, the facts, and fully original wording."
+                )
+
             revised_topic = (
-                f"{topic}\n\n"
-                f"[REVISION NOTE — attempt {attempt}] The previous version failed "
-                f"these plagiarism checks:\n{failed_items}\n"
-                f"Notes: {plagiarism_report.notes}\n"
-                f"Fix each failed item specifically. Use stronger paraphrasing, "
-                f"original sentence structure, and your own framing of the facts."
+                f"{topic}\n\n[REVISION NOTE — attempt {attempt}]\n" + "\n\n".join(notes)
             )
             article = self._writer.run(
                 revised_topic, level, section,
@@ -159,6 +180,11 @@ class ContentProducerAgent:
             self._log(
                 f"[{self.AGENT_LABEL}] 재작성 {max_retries}회 후에도 표절 경고 잔류 — "
                 f"AI 수정 채팅으로 직접 수정하거나 새로 생성해주세요"
+            )
+        if not self._writer._word_count_in_range(article.word_count, wc_range):
+            self._log(
+                f"[{self.AGENT_LABEL}] 재작성 {max_retries}회 후에도 워드카운트 {article.word_count} "
+                f"범위({wc_range}) 미달 — AI 수정 채팅으로 분량을 조정하거나 새로 생성해주세요"
             )
 
         # ── Step 3: 사실 점검 — 출처 대조 (불일치 시 1회 재작성 + 표절 재검사) ──
@@ -175,7 +201,8 @@ class ContentProducerAgent:
                 f"against the source articles:\n{issues_block}\n"
                 f"Rewrite the article so every claim is consistent with the sources. "
                 f"Remove or correct any numbers, dates, names, or quotes that the "
-                f"sources do not support — never invent specifics."
+                f"sources do not support — never invent specifics. "
+                f"Keep the article within {wc_range} words."
             )
             self._cancel_check()
             article = self._writer.run(
