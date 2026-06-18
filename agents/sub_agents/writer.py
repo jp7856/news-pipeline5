@@ -56,17 +56,18 @@ class WriterAgent:
             if source_content
             else ""
         )
-        # 실제 검색된 기사 제목·요약을 사실 참고자료로 제공
+        # 실제 검색된 기사 제목·요약을 사실 참고자료로 제공 (번호 매김 — 관련 출처 선별용)
         real_source_hint = ""
         if real_sources:
             lines = "\n".join(
-                f"- [{s.get('date', 'unknown')}] {s['title']}: {s['snippet']}"
-                for s in real_sources
+                f"[{i + 1}] [{s.get('date', 'unknown')}] {s['title']}: {s['snippet']}"
+                for i, s in enumerate(real_sources)
             )
             real_source_hint = (
                 f"\n\nRecent real news references — for factual grounding ONLY.\n"
                 f"IMPORTANT: Use these to verify facts, NOT as a writing template.\n"
-                f"NEVER copy or closely paraphrase their wording — write entirely in your own original words:\n{lines}"
+                f"NEVER copy or closely paraphrase their wording — write entirely in your own original words.\n"
+                f"Each reference is numbered. SOME MAY NOT actually be about this topic:\n{lines}"
             )
 
         prompt = f"""You are writing an article for {cfg['newspaper']}.
@@ -109,11 +110,19 @@ Instructions:
     (e.g., "swimming A2 · 수영하다", "enormous B1 · 거대한, 어마어마한").
     Use only standard CEFR levels: A1, A2, B1, B2, C1, C2.
 11. Do NOT invent or include any URLs — sources are managed separately.
+12. SOURCE RELEVANCE: From the numbered references above, put in "relevant_sources"
+    ONLY the numbers of references that are genuinely about THIS article's exact
+    topic and could actually support its facts. If a reference is about a different
+    subject (e.g. a festival when the topic is the seasons), do NOT include it.
+    If none are relevant, use an empty list [] — it is perfectly fine to write the
+    article from your own general knowledge with no cited sources. Never cite a
+    source that does not match the article.
 
 Respond in this exact JSON format:
 {{
   "article": "<full article text with paragraphs separated by \\n\\n>",
-  "vocabulary": ["swimming A2 · 수영하다", "enormous B1 · 거대한", "word3 A1 · 뜻3"]
+  "vocabulary": ["swimming A2 · 수영하다", "enormous B1 · 거대한", "word3 A1 · 뜻3"],
+  "relevant_sources": [1, 3]
 }}
 
 CRITICAL JSON RULES:
@@ -126,8 +135,16 @@ CRITICAL JSON RULES:
         article_text = data.get("article", "")
         vocabulary = data.get("vocabulary", [])
 
-        # 출처는 AI 생성이 아닌 실제 검색 결과만 사용 (404 환각 방지)
-        sources = [s["url"] for s in real_sources if s.get("url")]
+        # 출처는 AI 생성이 아닌 실제 검색 결과만 사용 (404 환각 방지).
+        # 토픽과 맞는 출처만 인용 — Writer가 고른 relevant_sources(1-based)만 채택.
+        # → 출처가 기사와 안 맞으면 인용 안 함(표절 7번 source_transparency 실패 방지).
+        sources = self._select_relevant_sources(real_sources, data.get("relevant_sources"))
+        available = sum(1 for s in real_sources if s.get("url"))
+        if available and len(sources) < available:
+            self._log(
+                f"[Writer] 토픽과 무관한 출처 {available - len(sources)}건 인용 제외 "
+                f"(인용 {len(sources)}/{available}건)"
+            )
 
         result = ArticleResult(
             text=article_text,
@@ -146,6 +163,28 @@ CRITICAL JSON RULES:
             f"{', 범위 내' if in_range else ' ⚠️ 범위 벗어남'})"
         )
         return result
+
+    @staticmethod
+    def _select_relevant_sources(real_sources: list[dict], relevant) -> list[str]:
+        """Writer가 고른 relevant_sources(1-based 번호)에 해당하는 URL만 인용한다.
+
+        - relevant가 리스트면 그 번호의 출처만 (토픽과 안 맞는 출처 제외).
+        - relevant가 None/누락이면(구버전·파싱 실패) 전부 인용으로 안전 폴백.
+        - 빈 리스트면 인용 없음(기사가 일반 지식 기반).
+        """
+        if relevant is None:
+            return [s["url"] for s in real_sources if s.get("url")]
+        chosen: list[str] = []
+        for n in relevant if isinstance(relevant, list) else []:
+            try:
+                idx = int(n) - 1
+            except (ValueError, TypeError):
+                continue
+            if 0 <= idx < len(real_sources):
+                url = real_sources[idx].get("url")
+                if url and url not in chosen:
+                    chosen.append(url)
+        return chosen
 
     @staticmethod
     def _word_count_in_range(count: int, range_str: str) -> bool:
