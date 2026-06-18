@@ -53,6 +53,13 @@ class ReviewerAgent:
 
         guideline = load_guideline_body(guideline_file_for_level(pkg.level))
         guideline_block = guideline_criterion = ""
+
+        # 워드카운트는 config(단일 기준)의 해당 서브레벨 목표 범위로 검사한다.
+        # LLM 계수는 부정확하므로 코드로 직접 판정해 범위 밖이면 강제 거부한다.
+        from agents.sub_agents.writer import WriterAgent
+        cfg, _ = WriterAgent._merge_config(pkg.level, pkg.sub_level)
+        wc_range = cfg.get("word_count_range", "")
+        wc_in_range = WriterAgent._word_count_in_range(article.word_count, wc_range)
         if guideline:
             guideline_block = (
                 f"\n이 신문의 작성 지침 (기사는 아래 지침을 반드시 준수해야 함):\n"
@@ -68,7 +75,7 @@ class ReviewerAgent:
 레벨: {pkg.level.value}
 섹션: {pkg.section.value}
 토픽: {pkg.topic}
-단어수: {article.word_count}
+단어수: {article.word_count} (목표 범위: {wc_range or "지정 없음"}{"" if wc_in_range else " ⚠️ 범위 벗어남 → 거부 대상"})
 어휘 수: {len(article.vocabulary)}
 한국어 번역 여부: {"있음" if article.text_ko else "없음"}
 한국어 요약 여부: {"있음" if article.summary_ko else "없음"}
@@ -108,5 +115,17 @@ class ReviewerAgent:
             raw = raw.split("```")[1].lstrip("json").strip()
 
         data = json.loads(raw)
+        approved = data.get("approved", False)
+        reason = data.get("reason", "")
         fix_targets = [t for t in data.get("fix_targets", []) if t in self.FIX_TARGETS]
-        return data.get("approved", False), data.get("reason", ""), fix_targets
+
+        # 코드 레벨 강제: 워드카운트가 목표 범위를 벗어나면 LLM 판정과 무관하게 거부.
+        # → _fix_rejected가 이 사유로 기사를 재작성한다(최대 2회).
+        if not wc_in_range:
+            approved = False
+            wc_note = f"워드카운트 {article.word_count}단어가 목표 범위({wc_range})를 벗어남 — 범위 안으로 분량 조정 필요"
+            reason = f"{wc_note}. {reason}" if reason else wc_note
+            if "article" not in fix_targets:
+                fix_targets.append("article")
+
+        return approved, reason, fix_targets
