@@ -155,6 +155,24 @@ def api_run():
     return jsonify({"message": "Pipeline started"})
 
 
+@app.route("/api/suggest-keywords", methods=["POST"])
+def api_suggest_keywords():
+    data = request.json or {}
+    topic = data.get("topic", "").strip()
+    source_url = data.get("source_url", "").strip()
+    section = data.get("section", "")
+    if not topic and not source_url:
+        return jsonify({"error": "Topic or source URL is required."}), 400
+    query = topic or source_url
+    try:
+        from agents.sub_agents.keyword_suggester import suggest_keywords
+        keywords = suggest_keywords(query, section)
+        return jsonify({"keywords": keywords})
+    except Exception as e:
+        logger.error(f"suggest-keywords error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/stop", methods=["POST"])
 def api_stop():
     sid = (request.json or {}).get("sid", "")
