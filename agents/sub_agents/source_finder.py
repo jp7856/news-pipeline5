@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 
 import anthropic
 
-from config import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from config import ANTHROPIC_API_KEY, CLAUDE_MODEL_FAST
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def search_real_sources(
         from agents.sub_agents.usage_tracker import TrackedClient
         client = TrackedClient(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
-            model=CLAUDE_MODEL,
+            model=CLAUDE_MODEL_FAST,
             max_tokens=2048,
             tools=[{
                 "type": "web_search_20260209",

@@ -15,7 +15,7 @@ from typing import Callable
 
 import requests
 
-from config import ANTHROPIC_API_KEY, CLAUDE_MODEL, SYSTEM_PROMPT, UNSPLASH_ACCESS_KEY
+from config import ANTHROPIC_API_KEY, CLAUDE_MODEL_FAST, SYSTEM_PROMPT, UNSPLASH_ACCESS_KEY
 from models import ContentPackage
 
 logger = logging.getLogger(__name__)
@@ -109,6 +109,8 @@ class ImageFinderAgent:
             prompt = f"""Read this news article and create photo search queries for Unsplash.
 
 Topic: {package.topic}
+Section: {package.section.value}
+Level: {package.level.value}
 Article:
 {package.article.text[:1500]}
 
@@ -120,11 +122,14 @@ Rules:
   (e.g. "students taking exam" not "education policy").
 - Avoid proper nouns unlikely to appear in stock photos — use the general
   subject instead (e.g. "badminton player smash" not a player's name).
+- Query 1: the main scene/action of the article
+- Query 2: the key subject/object in context
+- Query 3: broader topic fallback
 
 Output ONLY a JSON array: ["query one", "query two", "query three"]"""
 
             message = self._client.messages.create(
-                model=CLAUDE_MODEL,
+                model=CLAUDE_MODEL_FAST,
                 max_tokens=200,
                 system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": prompt}],

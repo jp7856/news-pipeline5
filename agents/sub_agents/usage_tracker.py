@@ -13,14 +13,22 @@ import threading
 
 import anthropic
 
-# Claude Sonnet 4.6 단가 (USD / 1M tokens)
-PRICE_INPUT = 3.00
-PRICE_OUTPUT = 15.00
-PRICE_CACHE_WRITE = 3.75   # 입력의 1.25배
-PRICE_CACHE_READ = 0.30    # 입력의 0.1배
-PRICE_WEB_SEARCH = 10.00 / 1000  # 검색 1회당 USD
+# 모델별 단가 (USD / 1M tokens)
+PRICING = {
+    "claude-sonnet-4-6": {
+        "input": 3.00, "output": 15.00,
+        "cache_write": 3.75, "cache_read": 0.30,
+    },
+    "claude-haiku-4-5-20251001": {
+        "input": 0.25, "output": 1.25,
+        "cache_write": 0.30, "cache_read": 0.03,
+    },
+}
+# 알 수 없는 모델은 Sonnet 단가로 fallback
+DEFAULT_PRICING = PRICING["claude-sonnet-4-6"]
 
-USD_TO_KRW = 1400  # 대략 환율
+PRICE_WEB_SEARCH = 10.00 / 1000  # 검색 1회당 USD
+USD_TO_KRW = 1400
 
 _lock = threading.Lock()
 _totals = {
@@ -30,6 +38,7 @@ _totals = {
     "cache_write_tokens": 0,
     "cache_read_tokens": 0,
     "web_searches": 0,
+    "cost_usd": 0.0,  # 모델별 단가 적용 누적 비용
 }
 
 
@@ -44,33 +53,44 @@ def record_usage(message) -> None:
     usage = getattr(message, "usage", None)
     if usage is None:
         return
+
+    model = getattr(message, "model", "") or ""
+    # 모델명 부분 매칭 (응답에 전체 모델명이 오는 경우 대비)
+    price = DEFAULT_PRICING
+    for key, p in PRICING.items():
+        if key in model:
+            price = p
+            break
+
+    inp = getattr(usage, "input_tokens", 0) or 0
+    out = getattr(usage, "output_tokens", 0) or 0
+    cw  = getattr(usage, "cache_creation_input_tokens", 0) or 0
+    cr  = getattr(usage, "cache_read_input_tokens", 0) or 0
+    server = getattr(usage, "server_tool_use", None)
+    ws = getattr(server, "web_search_requests", 0) or 0 if server else 0
+
+    cost = (
+        inp / 1_000_000 * price["input"]
+        + out / 1_000_000 * price["output"]
+        + cw  / 1_000_000 * price["cache_write"]
+        + cr  / 1_000_000 * price["cache_read"]
+        + ws * PRICE_WEB_SEARCH
+    )
+
     with _lock:
         _totals["calls"] += 1
-        _totals["input_tokens"] += getattr(usage, "input_tokens", 0) or 0
-        _totals["output_tokens"] += getattr(usage, "output_tokens", 0) or 0
-        _totals["cache_write_tokens"] += getattr(usage, "cache_creation_input_tokens", 0) or 0
-        _totals["cache_read_tokens"] += getattr(usage, "cache_read_input_tokens", 0) or 0
-        # 서버사이드 웹 검색 횟수
-        server = getattr(usage, "server_tool_use", None)
-        if server is not None:
-            _totals["web_searches"] += getattr(server, "web_search_requests", 0) or 0
-
-
-def _cost_usd(t: dict) -> float:
-    return (
-        t["input_tokens"] / 1_000_000 * PRICE_INPUT
-        + t["output_tokens"] / 1_000_000 * PRICE_OUTPUT
-        + t["cache_write_tokens"] / 1_000_000 * PRICE_CACHE_WRITE
-        + t["cache_read_tokens"] / 1_000_000 * PRICE_CACHE_READ
-        + t["web_searches"] * PRICE_WEB_SEARCH
-    )
+        _totals["input_tokens"] += inp
+        _totals["output_tokens"] += out
+        _totals["cache_write_tokens"] += cw
+        _totals["cache_read_tokens"] += cr
+        _totals["web_searches"] += ws
+        _totals["cost_usd"] += cost
 
 
 def usage_cost() -> dict:
     """현재까지 누적 추정 비용을 숫자로 반환한다 (시트 기록·대시보드 표시용)."""
     with _lock:
-        t = dict(_totals)
-    usd = _cost_usd(t)
+        usd = _totals["cost_usd"]
     return {"usd": round(usd, 4), "krw": round(usd * USD_TO_KRW)}
 
 
@@ -79,7 +99,7 @@ def usage_summary() -> str:
     with _lock:
         t = dict(_totals)
 
-    cost_usd = _cost_usd(t)
+    cost_usd = t["cost_usd"]
     cost_krw = cost_usd * USD_TO_KRW
 
     return (

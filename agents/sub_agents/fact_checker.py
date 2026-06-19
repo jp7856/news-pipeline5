@@ -10,7 +10,7 @@ from typing import Callable
 
 import anthropic
 
-from config import CLAUDE_MODEL_FAST, SYSTEM_PROMPT
+from config import CLAUDE_MODEL, SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class FactCheckerAgent:
 {{"passed": true, "issues": ["문제가 된 기사 내용과 이유를 한 줄씩"]}}"""
 
         message = self._client.messages.create(
-            model=CLAUDE_MODEL_FAST,
+            model=CLAUDE_MODEL,
             max_tokens=512,
             system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             messages=[{"role": "user", "content": prompt}],
