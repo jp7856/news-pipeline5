@@ -40,6 +40,8 @@
     input[type=text]{flex:1;min-width:250px;padding:10px 14px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;font-size:.9rem}
     select{padding:10px 14px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;font-size:.9rem;min-width:120px}
     button{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:500}
+    #btn-ideabank{background:#78350f;color:#fde68a;border:1px solid #f59e0b}
+    #btn-ideabank:disabled{background:#475569;color:#94a3b8;border-color:#475569;cursor:not-allowed}
     #btn-run{background:#3b82f6;color:white}
     #btn-run:disabled{background:#475569;cursor:not-allowed}
 
@@ -192,6 +194,7 @@
         <option value="{{sc.value}}">{{sc.label}}</option>
         {% endfor %}
       </select>
+      <button id="btn-ideabank" onclick="openIdeaBank()" title="연관 검색어 추천">아이디어 뱅크</button>
       <button id="btn-run" onclick="runPipeline()">Generate</button>
       <button style="background:#1e293b;color:#94a3b8;border:1px solid #334155" onclick="openHistory()">모두 보기</button>
     </div>
@@ -654,20 +657,18 @@
       _startPipeline(getSelectedKeywords());
     }
 
-    async function runPipeline() {
-      if (_clientRunning) return;
+    async function openIdeaBank() {
       const sourceUrl = document.getElementById("source-url").value.trim();
       const topic = document.getElementById("topic").value.trim();
-      if (!topic && !sourceUrl) { alert("Please enter a topic."); return; }
+      if (!topic && !sourceUrl) { alert("Please enter a topic first."); return; }
 
-      // 키워드 패널 초기화 후 표시
       kwCategories.innerHTML = "";
       kwLoading.style.display = "block";
       kwHint.textContent = "선택한 키워드가 기사 검색 방향에 반영됩니다.";
       kwPanel.querySelectorAll(".kw-chip.selected").forEach(c => c.classList.remove("selected"));
       kwPanel.classList.add("show");
-      document.getElementById("result-area").classList.add("hidden");
 
+      document.getElementById("btn-ideabank").disabled = true;
       try {
         const resp = await fetch("/api/suggest-keywords", {
           method: "POST",
@@ -683,6 +684,16 @@
       } catch(e) {
         renderKeywords({});
       }
+      document.getElementById("btn-ideabank").disabled = false;
+    }
+
+    async function runPipeline() {
+      if (_clientRunning) return;
+      const sourceUrl = document.getElementById("source-url").value.trim();
+      let topic = document.getElementById("topic").value.trim();
+      if (!topic && !sourceUrl) { alert("Please enter a topic."); return; }
+      kwPanel.classList.remove("show");
+      _startPipeline([]);
     }
 
     async function _startPipeline(selectedKeywords) {
