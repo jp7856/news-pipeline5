@@ -129,6 +129,9 @@ def api_run():
     section_str = data.get("section", "환경")
     source_url = data.get("source_url", "").strip()
     sub_level = data.get("sub_level", "")
+    hint_keywords = data.get("hint_keywords") or []
+    if not isinstance(hint_keywords, list):
+        hint_keywords = []
     if sub_level not in ("L1", "L2", "L3"):
         sub_level = ""  # 미지정 → 매체 기준 레벨 범위 안에서 랜덤 배정
 
@@ -149,7 +152,7 @@ def api_run():
     _cancel_events[sid] = threading.Event()
     _pending.pop(sid, None)
     thread = threading.Thread(
-        target=_run_phase1, args=(sid, topic, level, section, source_url, sub_level), daemon=True
+        target=_run_phase1, args=(sid, topic, level, section, source_url, sub_level, hint_keywords), daemon=True
     )
     thread.start()
     return jsonify({"message": "Pipeline started"})
@@ -344,13 +347,13 @@ def _emit_log_for(sid: str):
     return emit_log
 
 
-def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url: str = "", sub_level: str = ""):
+def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url: str = "", sub_level: str = "", hint_keywords: list | None = None):
     """Phase 1 — 기사 초안 생성 후 미리보기 전송, 사용자 확인 대기."""
     try:
         orchestrator = Orchestrator(
             log_callback=_emit_log_for(sid), cancel_event=_cancel_events.get(sid)
         )
-        state = orchestrator.run_phase1(topic, level, section, source_url=source_url, sub_level=sub_level)
+        state = orchestrator.run_phase1(topic, level, section, source_url=source_url, sub_level=sub_level, hint_keywords=hint_keywords or [])
         state["orchestrator"] = orchestrator
 
         _pending[sid] = state

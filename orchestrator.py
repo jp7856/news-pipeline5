@@ -56,6 +56,7 @@ class Orchestrator:
         section: Section,
         source_url: str = "",
         sub_level: str = "",
+        hint_keywords: list[str] | None = None,
     ) -> dict:
         """기사 초안까지만 생성하고 상태를 반환한다. (이후 run_phase2로 완성)
 
@@ -81,7 +82,8 @@ class Orchestrator:
             level, log_callback=self._log, cancel_check=self._check_cancel
         )
         article, plagiarism_report = producer.produce_article(
-            topic, level, section, source_url=source_url, sub_level=sub_level
+            topic, level, section, source_url=source_url, sub_level=sub_level,
+            hint_keywords=hint_keywords,
         )
         self._log("[Phase1] 기사 초안 완료 — 검토 후 '이후 작업 진행'을 눌러주세요")
 

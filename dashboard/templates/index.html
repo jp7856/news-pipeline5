@@ -702,12 +702,6 @@
       let topic = document.getElementById("topic").value.trim();
       if (!topic) topic = sourceUrl;
 
-      // 선택된 키워드를 토픽에 힌트로 붙임
-      let finalTopic = topic;
-      if (selectedKeywords.length) {
-        finalTopic = `${topic}\n[Search focus: ${selectedKeywords.join(", ")}]`;
-      }
-
       _clientRunning = true;
       setRunning(true);
       hideContinueBar();
@@ -721,11 +715,12 @@
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-          topic: finalTopic,
+          topic,
           level: document.getElementById("level").value,
           section: document.getElementById("section").value,
           sid: _sessionId,
           source_url: sourceUrl,
+          hint_keywords: selectedKeywords,
         }),
       });
       if (!resp.ok) {

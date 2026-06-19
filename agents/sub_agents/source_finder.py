@@ -42,15 +42,26 @@ def search_real_sources(
     topic: str,
     section: str = "",
     max_results: int = 3,
+    hint_keywords: list[str] | None = None,
     log: Callable[[str], None] | None = None,
 ) -> list[dict]:
     """토픽으로 실제 기사를 웹 검색한다.
 
+    hint_keywords: 아이디어 뱅크에서 사용자가 선택한 키워드 — 있으면 검색에 우선 활용.
     Returns: [{"title": ..., "url": ..., "snippet": ...}, ...]
              검색 실패 시 빈 리스트 (파이프라인은 계속 진행).
     """
     _log = log or (lambda msg: logger.info(msg))
     _log("[SourceFinder] 웹 검색 시작")
+
+    keyword_hint = ""
+    if hint_keywords:
+        kw_list = ", ".join(f'"{k}"' for k in hint_keywords[:6])
+        keyword_hint = (
+            f"\n\nIMPORTANT — The editor has pre-selected these search keywords: {kw_list}. "
+            f"Use these as your primary search terms. You may refine or combine them, "
+            f"but stay close to their intent."
+        )
 
     try:
         from agents.sub_agents.usage_tracker import TrackedClient
@@ -68,7 +79,8 @@ def search_real_sources(
                 "role": "user",
                 "content": (
                     f"You are finding source references for an educational news article "
-                    f"about: {topic}{f' (category: {section})' if section else ''}.\n\n"
+                    f"about: {topic}{f' (category: {section})' if section else ''}."
+                    f"{keyword_hint}\n\n"
                     f"STEP 1 — Core keywords. If the topic is not in English, translate it "
                     f"first. Extract the 2-4 ESSENTIAL keywords that define what the article "
                     f"must be about.\n\n"

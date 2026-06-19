@@ -75,7 +75,7 @@ class ContentProducerAgent:
 
     def produce_article(
         self, topic: str, level: Level, section: Section, source_url: str = "",
-        sub_level: str = "L2",
+        sub_level: str = "L2", hint_keywords: list[str] | None = None,
     ):
         """Phase 1 — 기사 작성 + 표절 검사까지만 수행한다.
 
@@ -98,7 +98,7 @@ class ContentProducerAgent:
 
         # 실제 기사 출처 검색 (AI가 URL을 지어내는 환각 방지)
         from agents.sub_agents.source_finder import search_real_sources
-        real_sources = search_real_sources(topic, section.value, log=self._log)
+        real_sources = search_real_sources(topic, section.value, hint_keywords=hint_keywords, log=self._log)
 
         self._cancel_check()
 
