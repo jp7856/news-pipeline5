@@ -66,7 +66,8 @@ class Orchestrator:
         from agents.sub_agents.usage_tracker import reset_usage
         reset_usage()
 
-        if not sub_level:
+        randomly_assigned = not sub_level
+        if randomly_assigned:
             sub_level = pick_sublevel(level)
 
         run_id = str(uuid.uuid4())[:8]
@@ -75,6 +76,8 @@ class Orchestrator:
         self._log(f"    Topic   : {topic}")
         self._log(f"    Level   : {level.value}")
         self._log(f"    Section : {section.value}")
+        if randomly_assigned:
+            self._log(f"[Phase1] 레벨을 선택하지 않아 랜덤으로 {sub_level} 레벨의 기사로 작성합니다.")
         self._log("")
 
         # 레벨에 따라 에이전트 1-1 ~ 1-5로 라우팅 (ORCHESTRATION.md 2절)
