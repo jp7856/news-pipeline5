@@ -39,80 +39,81 @@ concepts are explained in English, and being exposed to a variety of information
 # ------------------------------------------------------------------
 # 레벨별 신문 설정
 # ------------------------------------------------------------------
-# 수치 기준: 2026-06 실제 NE Times 4개 매체 CEFR 분석 (상세 표는 agents/guidelines/*.md).
-# 각 매체는 내부에 L1~L3 서브레벨이 있고, 생성 기본 타깃은 중간인 L2.
+# 수치 기준: 2026-06 실제 NE Times 5개 매체 전수 분석 (basic.xlsx, 산문 기사 248건).
+# 분석 도구: tests/analyze_basic_xlsx.py / 설계 원칙: 매체 간 겹침 최소화 + 실측 범위 내 강제.
+# 매체 간 핵심 변별축 = CEFR + 평균 문장 길이 (단어 수는 중간 구간에서 일부 겹침 — 지침 참조).
+# 각 매체는 내부에 L1~L3 서브레벨이 있고(JUNIOR M은 L1~L2), 생성 기본 타깃은 L2.
 LEVEL_CONFIG: dict[str, dict] = {
     "kinder": {
         "newspaper":        "NE Times Kinder",
-        "cefr":             "A1 (media range Pre-A1 to A1)",
+        "cefr":             "Pre-A1 to A1",
         "target":           "kindergarteners and early elementary school students (ages 5–8)",
-        "word_count_range": "45–90",
+        "word_count_range": "40–90",
         "paragraph_count":  "4–6",
     },
     "kids": {
         "newspaper":        "NE Times Kids",
-        "cefr":             "A2 (media range A1+ to A2+)",
-        "target":           "elementary school students (ages 9–12)",
-        "word_count_range": "70–120",
-        "paragraph_count":  "4–5",
+        "cefr":             "A1+ to A2+",
+        "target":           "elementary school students (ages 8–11)",
+        "word_count_range": "60–180",
+        "paragraph_count":  "3–11",
     },
     "junior": {
         "newspaper":        "NE Times Junior",
-        "cefr":             "early B1 (media range A2+ to B1)",
-        "target":           "high elementary and low middle school students (ages 11–14)",
-        "word_count_range": "150–190",
-        "paragraph_count":  "4–5",
+        "cefr":             "A2+ to B1+",
+        "target":           "upper elementary students (ages 11–13)",
+        "word_count_range": "115–230",
+        "paragraph_count":  "4–7",
+    },
+    "junior_m": {
+        "newspaper":        "NE Times Junior M",
+        "cefr":             "B1 to B1+",
+        "target":           "middle school students (ages 13–16)",
+        "word_count_range": "150–215",
+        "paragraph_count":  "5–8",
     },
     "times": {
         "newspaper":        "NE Times",
-        "cefr":             "B1+ (media range B1 to B2)",
-        "target":           "high school students (ages 15–18)",
-        "word_count_range": "245–300",
-        "paragraph_count":  "5–8",
-    },
-    # ⚠️ placeholder — junior 복사본. 실측 분석에 미포함, 에이전트 1-5 지침 입고 시 확정 필요
-    "junior_m": {
-        "newspaper":        "NE Times Junior M",
-        "cefr":             "early B1 (media range A2+ to B1)",
-        "target":           "high elementary and low middle school students (ages 11–14)",
-        "word_count_range": "150–190",
-        "paragraph_count":  "4–5",
+        "cefr":             "B1+ to B2",
+        "target":           "high school students (ages 16–18)",
+        "word_count_range": "110–340",
+        "paragraph_count":  "3–10",
     },
 }
 
 # ------------------------------------------------------------------
-# 매체 내부 서브레벨 — 2026-06 실제 발행 기사 CSV 분석 (산문 기사만, 각주 제외).
-# 평균이 아닌 실측 범위(min–max) 기준 — 기사는 반드시 이 범위 안에서 작성.
+# 매체 내부 서브레벨 — 2026-06 basic.xlsx 전수 분석 (산문 기사만, 각주·한글 뜻풀이 제외).
+# 실측 분포의 코어(p5~p95)를 라운드 처리한 값 — 기사는 반드시 이 범위 안에서 작성.
 # 선택된 서브레벨 값이 LEVEL_CONFIG 위에 덮어써져 Writer 프롬프트에 들어간다.
-# 상세 분석·문체 규칙: agents/guidelines/*.md / 분석 도구: tests/analyze_media_csv.py
+# 상세 분석·문체 규칙: agents/guidelines/*.md / 분석 도구: tests/analyze_basic_xlsx.py
+# 매체 간 단어 수는 중간 구간(JUNIOR/JUNIOR M/TIMES L1)에서 겹침 — CEFR·문장 길이로 변별.
 # ------------------------------------------------------------------
 DEFAULT_SUBLEVEL = "L2"
 
 SUBLEVEL_CONFIG: dict[str, dict[str, dict]] = {
     "kinder": {  # KINDER는 L1~L2만 존재
-        "L1": {"cefr": "Pre-A1", "word_count_range": "35–55",   "sentence_length": "4–6 words",   "paragraph_count": "4–5"},
-        "L2": {"cefr": "A1",     "word_count_range": "45–90",   "sentence_length": "5–8 words",   "paragraph_count": "4–6"},
+        "L1": {"cefr": "Pre-A1", "word_count_range": "40–55",   "sentence_length": "4–6 words",   "paragraph_count": "4–5"},
+        "L2": {"cefr": "A1",     "word_count_range": "55–90",   "sentence_length": "5–8 words",   "paragraph_count": "4–6"},
     },
     "kids": {
-        "L1": {"cefr": "A1+",    "word_count_range": "55–70",   "sentence_length": "7–10 words",  "paragraph_count": "3–4"},
-        "L2": {"cefr": "A2",     "word_count_range": "70–120",  "sentence_length": "8–12 words",  "paragraph_count": "4–5"},
-        "L3": {"cefr": "A2+",    "word_count_range": "155–180", "sentence_length": "9–13 words",  "paragraph_count": "9–11"},
+        "L1": {"cefr": "A1+",    "word_count_range": "60–75",   "sentence_length": "7–10 words",  "paragraph_count": "3–4"},
+        "L2": {"cefr": "A2",     "word_count_range": "75–130",  "sentence_length": "8–12 words",  "paragraph_count": "4–6"},
+        "L3": {"cefr": "A2+",    "word_count_range": "130–180", "sentence_length": "9–12 words",  "paragraph_count": "8–11"},
     },
     "junior": {
-        "L1": {"cefr": "A2+",      "word_count_range": "115–160", "sentence_length": "10–15 words", "paragraph_count": "4"},
-        "L2": {"cefr": "early B1", "word_count_range": "150–190", "sentence_length": "11–17 words", "paragraph_count": "4–5"},
-        "L3": {"cefr": "B1",       "word_count_range": "190–230", "sentence_length": "13–18 words", "paragraph_count": "6–7"},
+        "L1": {"cefr": "A2+", "word_count_range": "115–150", "sentence_length": "10–14 words", "paragraph_count": "4"},
+        "L2": {"cefr": "B1",  "word_count_range": "150–190", "sentence_length": "12–16 words", "paragraph_count": "4–5"},
+        "L3": {"cefr": "B1+", "word_count_range": "190–230", "sentence_length": "14–18 words", "paragraph_count": "6–7"},
+    },
+    "junior_m": {  # 유일한 월간지(중학생·시사/이슈 중심) — L1~L2만 존재. JUNIOR와 길이 겹침 정상.
+        "L1": {"cefr": "B1",  "word_count_range": "150–185", "sentence_length": "11–15 words", "paragraph_count": "5–7"},
+        "L2": {"cefr": "B1+", "word_count_range": "185–215", "sentence_length": "12–16 words", "paragraph_count": "6–8"},
     },
     "times": {
-        "L1": {"cefr": "B1",  "word_count_range": "110–150", "sentence_length": "13–18 words", "paragraph_count": "3–5"},
-        "L2": {"cefr": "B1+", "word_count_range": "245–300", "sentence_length": "14–20 words", "paragraph_count": "5–8"},
-        "L3": {"cefr": "B2",  "word_count_range": "255–300", "sentence_length": "15–19 words", "paragraph_count": "6–10"},
-    },
-    # ⚠️ placeholder — junior 복사본 (실측 분석 미포함)
-    "junior_m": {
-        "L1": {"cefr": "A2+",      "word_count_range": "115–160", "sentence_length": "10–15 words", "paragraph_count": "4"},
-        "L2": {"cefr": "early B1", "word_count_range": "150–190", "sentence_length": "11–17 words", "paragraph_count": "4–5"},
-        "L3": {"cefr": "B1",       "word_count_range": "190–230", "sentence_length": "13–18 words", "paragraph_count": "6–7"},
+        # L1 = 압축 뉴스(110–150). 60–80단어 Briefs는 생성 대상에서 제외(매체 변별 위해).
+        "L1": {"cefr": "B1+", "word_count_range": "110–150", "sentence_length": "13–18 words", "paragraph_count": "3–5"},
+        "L2": {"cefr": "B2",  "word_count_range": "260–300", "sentence_length": "15–20 words", "paragraph_count": "5–8"},
+        "L3": {"cefr": "B2",  "word_count_range": "280–340", "sentence_length": "16–20 words", "paragraph_count": "6–10"},
     },
 }
 

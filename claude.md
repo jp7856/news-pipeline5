@@ -54,7 +54,7 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
 ORCHESTRATION.md           # 에이전트 구성·지침 작성 규칙의 단일 기준
 orchestrator.py            # run_phase1/run_phase2, PipelineCancelled
 agents/level_agents.py     # 에이전트 1-1(KINDER)~1-5(JUNIOR M) + create_agent1 팩토리
-agents/guidelines/         # 신문별 작성 지침 (Writer 프롬프트 주입) — 4개 매체 실측 CEFR 기준 입고, JUNIOR M만 placeholder
+agents/guidelines/         # 신문별 작성 지침 (Writer 프롬프트 주입) — 5개 매체 전부 basic.xlsx 전수 분석 기준 입고 (JUNIOR M 포함)
 agents/content_producer.py # 에이전트 1 공통 베이스 — produce_article(표절 3회 루프) / produce_extras
 agents/sub_agents/
   source_finder.py         # 웹 검색 출처 (BBC/Reuters 등은 크롤러 차단 — 넣으면 400)
@@ -101,7 +101,7 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼 + 
 
 - [ ] 출처 0건 문제: Writer가 검색 결과 전부 부적합 판정 시 → 로그 확인 후 방향 결정
 - [ ] 평균 문장 길이 코드 강제 여부 미정 (현재 프롬프트 지시만)
-- [ ] JUNIOR M(1-5): placeholder 상태, 지침·config 수치 미확정
+- [x] JUNIOR M(1-5): basic.xlsx 분석으로 확정 (L1~L2, B1~B1+, 중학생·시사/이슈 중심)
 - [ ] 배치 생성 (여러 기사 동시)
 
 ## v5 이관 체크리스트

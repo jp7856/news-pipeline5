@@ -1,35 +1,41 @@
 <!--
 에이전트 1-4 (TIMES) — NE Times 기사 작성 지침
 이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
-근거: 2026-06 실제 발행 기사 CSV 분석 (1071호~, 산문 기사 67건, 각주 제외).
+근거: 2026-06 basic.xlsx 전수 분석 (TIMES 산문 108건: L1 48 / L2 40 / L3 20, 각주·한글 뜻풀이 제외).
 수치 사양(단어 수·문장 길이·문단·CEFR)은 config.py가 단일 기준 — 이 파일엔 문체 규칙만 둔다 (드리프트 방지).
-실측 섹션: Nation / World / Briefs (L1), Headlines News / Key Issue / Lifestyle /
-Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사 (L3)
-참고: L1에는 1단락 60–80단어 '단신(Briefs)'과 190–210단어 확장 기사 변형도 있으나
-생성 기본형은 110–150단어 일반 기사. 비산문 포맷(생성 대상 아님): Photo News, Debating
+실측 산문 섹션: Nation / World / Briefs (L1), Headlines News / Key Issue / Lifestyle /
+Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사·VoA (L3)
+비산문 포맷(생성 대상 아님): Photo News, Debating
+참고: 실측 L1에는 60~80단어 '단신(Briefs)'도 있으나 생성 기본형에서 제외(매체 변별 위해) —
+  생성 L1 = 110~150단어 압축 뉴스. L2/L3는 260단어 이상 본격 기사.
+이 매체의 위치: 5개 매체 중 가장 높음(고등). 아래(JUNIOR M)와의 변별 = 격식 신문체·통계/수치·
+  전문가 인용·다관점 분석. 독자에게 직접 말 걸지 않음.
 -->
 
 NE Times — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
+This is the HIGHEST of the five newspapers (high school, B1+ to B2). It must read like a real adult newspaper, clearly more formal and information-dense than Junior M.
+
 Style rules for this newspaper (observed in real articles):
 - Full formal newspaper register; objective tone, no direct address to the reader
   (a rhetorical opening question is acceptable for science/lifestyle topics only).
-- Inverted pyramid: lede with the news and why it matters, body with background
-  and details, closing with outlook or analyst expectations.
-- Concrete numbers and facts are expected (statistics, dates, amounts, rankings)
-  — e.g., "22.9 kilograms per person, down from 25.3 kilograms in 2024."
-- Full range of complex structures: relative clauses, participial phrases,
-  passives, reported speech. Keep each sentence to one or two subordinate structures.
-- Include at least one quoted or attributed statement when the topic allows:
-  direct quotes from officials/experts, or "Analysts expect ..." / "Experts point to ...".
-- Vocabulary: upper-intermediate; domain terms used as-is, glossed in-line only
-  when genuinely technical.
+- Inverted pyramid: lede with the news and why it matters, body with background and
+  details, closing with outlook or analyst expectations.
+- Concrete numbers and facts are expected — statistics, dates, amounts, percentages,
+  rankings ("roughly 70 percent of Korea's crude oil ... over 35 percent of its naphtha").
+- Full range of complex structures: relative clauses, participial phrases, passives,
+  reported speech. Keep each sentence to one or two subordinate structures.
+- Include at least one quoted or attributed statement when the topic allows: direct
+  quotes from officials/experts, or "Analysts warn ..." / "Experts point to ...".
+- Vocabulary: upper-intermediate; domain terms used as-is, glossed in-line only when
+  genuinely technical (hardest terms may carry a footnote marker).
 
 Sub-level differences:
-- L1 (straight news): 3–5 compact paragraphs — event, key details with numbers,
-  reaction or expected impact. No subheadings.
-- L2 (headline/feature): 5–8 paragraphs with fuller background, at least one
-  quote, and a closing paragraph of significance or outlook.
-- L3 (in-depth report): 6–10 paragraphs covering multiple perspectives or
-  stakeholders (government, experts, citizens), causes and consequences, and
-  broader implications; reported speech and analyst commentary throughout.
+- L1 (straight news — Nation / World): 3–5 compact paragraphs — event, key details with
+  numbers, reaction or expected impact. No subheadings. (110–150 words; do NOT write the
+  60–80-word "Briefs" format.)
+- L2 (headline / feature): 5–8 paragraphs with fuller background, at least one quote,
+  and a closing paragraph of significance or outlook. (260–300 words.)
+- L3 (in-depth report): 6–10 paragraphs covering multiple perspectives or stakeholders
+  (government, experts, citizens), causes and consequences, and broader implications;
+  reported speech and analyst commentary throughout. (280–340 words.)
