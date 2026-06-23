@@ -117,18 +117,21 @@ class ContentProducerAgent:
 
         self._cancel_check()
 
-        # ── Step 2: 표절 검사 + 워드카운트 (둘 다 만족할 때까지 재작성, 최대 3회) ──
-        # 초안 단계에서 분량을 맞춘다 — 범위 밖 초안을 검토에 넘기지 않기 위함.
+        # ── Step 2: 표절 + 워드카운트 + 평균 문장 길이 (셋 다 만족할 때까지 재작성, 최대 3회) ──
+        # 초안 단계에서 분량·난이도를 맞춘다 — 범위 밖 초안을 검토에 넘기지 않기 위함.
         # 목표 범위는 config가 단일 기준 (Writer·검수와 동일 소스).
         _cfg, _ = self._writer._merge_config(level, sub_level)
         wc_range = _cfg.get("word_count_range", "")
+        sl_range = _cfg.get("sentence_length", "")
 
         plagiarism_report = self._plagcheck.run(article)
         max_retries = 3
         attempt = 0
         while attempt < max_retries:
             wc_ok = self._writer._word_count_in_range(article.word_count, wc_range)
-            if plagiarism_report.passed and wc_ok:
+            avg_sl = self._writer._avg_sentence_length(article.text)
+            sl_ok = self._writer._sentence_length_in_range(avg_sl, sl_range)
+            if plagiarism_report.passed and wc_ok and sl_ok:
                 break
             attempt += 1
             self._cancel_check()
@@ -162,6 +165,18 @@ class ContentProducerAgent:
                     f"The article has {article.word_count} words, which is OUTSIDE the required "
                     f"range of {wc_range} words. Adjust the length to fall WITHIN {wc_range} words "
                     f"— keep the reading level, the facts, and fully original wording."
+                )
+            if not sl_ok:
+                self._log(
+                    f"[{self.AGENT_LABEL}] 평균 문장 길이 {avg_sl:.1f}단어 목표({sl_range}) 벗어남 "
+                    f"— 재작성 {attempt}/{max_retries}회"
+                )
+                direction = "shorter, simpler sentences" if avg_sl > 0 and self._sl_over(avg_sl, sl_range) else "slightly longer, fuller sentences"
+                notes.append(
+                    f"The article's AVERAGE sentence length is {avg_sl:.1f} words, which is OUTSIDE "
+                    f"the required range of {sl_range}. Rewrite using {direction} so the average "
+                    f"falls WITHIN {sl_range} — this controls the reading difficulty (CEFR). "
+                    f"Keep the facts, word count target, and fully original wording."
                 )
 
             revised_topic = (
@@ -268,6 +283,15 @@ class ContentProducerAgent:
             crossword_sentences=crossword_sentences,
             workbook_sets=workbook_sets,
         )
+
+    @staticmethod
+    def _sl_over(avg: float, range_str: str) -> bool:
+        """평균 문장 길이가 목표 범위 상한을 초과하면 True (재작성 방향 결정용)."""
+        try:
+            nums = re.findall(r"\d+", range_str)
+            return avg > int(nums[1])
+        except (ValueError, IndexError, TypeError):
+            return False
 
     def run(self, topic: str, level: Level, section: Section, source_url: str = "") -> ContentPackage:
         """전체 한 번에 실행 (하위 호환용)."""

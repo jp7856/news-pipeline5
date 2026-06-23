@@ -156,11 +156,16 @@ CRITICAL JSON RULES:
             f"어휘 {len(result.vocabulary)}개 / 출처 {len(result.sources)}개"
         )
         in_range = self._word_count_in_range(result.word_count, cfg["word_count_range"])
-        # 사양 로그 — 서브레벨은 노출하지 않음 (CEFR·워드카운트만)
+        sl_range = cfg.get("sentence_length", "")
+        avg_sl = self._avg_sentence_length(result.text)
+        sl_ok = self._sentence_length_in_range(avg_sl, sl_range)
+        # 사양 로그 — 서브레벨은 노출하지 않음 (CEFR·워드카운트·문장길이만)
         self._log(
             f"[Writer] 사양 — {cfg['newspaper']} / CEFR {cfg['cefr']} / "
             f"워드카운트 {result.word_count} (목표 {cfg['word_count_range']}"
-            f"{', 범위 내' if in_range else ' ⚠️ 범위 벗어남'})"
+            f"{', 범위 내' if in_range else ' ⚠️ 범위 벗어남'}) / "
+            f"평균문장 {avg_sl:.1f}단어 (목표 {sl_range or '지정 없음'}"
+            f"{', 범위 내' if sl_ok else ' ⚠️ 범위 벗어남'})"
         )
         return result
 
@@ -193,6 +198,27 @@ CRITICAL JSON RULES:
             lo, hi = re.split(r"[–\-~]", range_str)
             return int(lo) <= count <= int(hi)
         except (ValueError, AttributeError):
+            return True  # 범위를 못 읽으면 경고하지 않음
+
+    @staticmethod
+    def _avg_sentence_length(text: str) -> float:
+        """본문의 평균 문장 길이(문장당 영어 단어 수). 분석 도구와 동일한 방식."""
+        if not text:
+            return 0.0
+        lengths = []
+        for sentence in re.split(r"(?<=[.!?])\s+", text):
+            n = sum(1 for tok in sentence.split() if re.search(r"[A-Za-z]", tok))
+            if n >= 2:  # 단어 1개짜리(소제목 등)는 제외
+                lengths.append(n)
+        return sum(lengths) / len(lengths) if lengths else 0.0
+
+    @staticmethod
+    def _sentence_length_in_range(avg: float, range_str: str) -> bool:
+        """'13–18 words' 형식의 범위에 평균 문장 길이가 들어가는지 확인."""
+        try:
+            nums = re.findall(r"\d+", range_str)
+            return int(nums[0]) <= avg <= int(nums[1])
+        except (ValueError, IndexError, TypeError):
             return True  # 범위를 못 읽으면 경고하지 않음
 
     @staticmethod
