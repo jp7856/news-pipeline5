@@ -184,10 +184,13 @@
   <main>
     <div class="form-row">
       <input type="text" id="topic" placeholder="Enter topic (e.g. Climate change and young activists)">
-      <select id="level">
+      <select id="level" onchange="populateSublevels()">
         {% for lv in levels %}
         <option value="{{lv.value}}" {% if lv.value == 'junior' %}selected{% endif %}>{{lv.label}}</option>
         {% endfor %}
+      </select>
+      <select id="sublevel" title="서브레벨 — 자동은 매체 범위 안에서 랜덤 배정">
+        <option value="">레벨 자동</option>
       </select>
       <select id="section">
         {% for sc in sections %}
@@ -307,6 +310,18 @@
     const LEVEL_CEFR = {{ level_cefr | tojson }};
     const SUBLEVELS = {{ sublevels | tojson }};
     const DEFAULT_SUBLEVEL = {{ default_sublevel | tojson }};
+
+    // 선택된 매체에 맞는 서브레벨 옵션을 채운다 (자동 + 그 매체의 L1/L2/L3).
+    function populateSublevels() {
+      const level = document.getElementById("level").value;
+      const sel = document.getElementById("sublevel");
+      const prev = sel.value;
+      const subs = SUBLEVELS[level] || [];
+      sel.innerHTML = '<option value="">레벨 자동</option>'
+        + subs.map(s => `<option value="${s.key}">${s.key} · CEFR ${s.cefr} · ${s.words}</option>`).join("");
+      // 매체 바꿔도 같은 키(L1/L2 등)가 있으면 선택 유지, 없으면 자동으로
+      sel.value = subs.some(s => s.key === prev) ? prev : "";
+    }
 
     // 레벨 + CEFR 배지 — 기사 생성 시 워드카운트 옆에 노출 (서브레벨이 있으면 그 CEFR)
     function cefrStat(level, subLevel) {
@@ -717,6 +732,7 @@
         body: JSON.stringify({
           topic,
           level: document.getElementById("level").value,
+          sub_level: document.getElementById("sublevel").value,
           section: document.getElementById("section").value,
           sid: _sessionId,
           source_url: sourceUrl,
@@ -1091,6 +1107,7 @@
       document.getElementById("lightbox").classList.remove("open");
     }
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeLightbox(); closeHistory(); closeUsageChart(); } });
+    populateSublevels();  // 초기 매체에 맞는 서브레벨 옵션 채우기
 
     // ── History ───────────────────────────────────────────────────
     async function openHistory() {
