@@ -74,6 +74,8 @@ def search_real_sources(
                 "name": "web_search",
                 "max_uses": 1,
                 "allowed_domains": ALLOWED_DOMAINS,
+                # Haiku는 programmatic tool calling 미지원 → direct 호출로 고정해야 web_search 작동
+                "allowed_callers": ["direct"],
             }],
             messages=[{
                 "role": "user",
