@@ -18,6 +18,10 @@ Style rules for this newspaper (observed in real articles):
 - Present tense is the default; simple past only for events and diary-style stories.
 - Only the most basic everyday vocabulary (animals, food, family, school, places, holidays).
   No idioms, no phrasal verbs, no abstract nouns, no relative clauses.
+- Vocabulary guardrail: every word must exist in a picture dictionary for ages 5–7.
+  If a word has more than 2 syllables, replace it with something shorter and simpler.
+  NOT: environment, celebrate, important, discover, special
+  USE: nature, have a party, big, find, cool / great / fun
 - Introduce every proper noun with a simple frame: "Pokémon are fun characters." /
   "Egypt is in Africa." Never assume the reader already knows a name.
 - A warm, playful tone is part of the format: exclamations ("It was so much fun!",

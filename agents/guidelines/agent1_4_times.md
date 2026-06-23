@@ -30,6 +30,24 @@ Style rules for this newspaper (observed in real articles):
 - Vocabulary: upper-intermediate; domain terms used as-is, glossed in-line only when
   genuinely technical (hardest terms may carry a footnote marker).
 
+Vocabulary guardrails — this is a HIGH SCHOOL LEARNING newspaper, NOT The Economist or an
+academic paper. B2 means upper-intermediate, not near-native or academic:
+- L1 (B1): vocabulary a motivated Korean 9th-grader can read.
+  NOT: proponents, deterring, incorporating, measurable margins, civil liberties advocates
+  USE: supporters, stopping, using, by a clear amount, privacy / rights groups
+- L2/L3 (B2): domain terms (GDP, legislation, surveillance) are fine when the topic
+  demands them. Academic nominalizations and C1+ phrasing are NOT.
+  NOT: "the proliferation of surveillance infrastructure"
+  USE: "more and more surveillance cameras are being installed"
+  NOT: "civil liberties advocates contend that existing regulations struggle to keep pace"
+  USE: "privacy groups say the rules cannot keep up"
+  NOT: "Studies conducted by criminologists at several universities in the United Kingdom
+       and the United States have found that..."
+  USE: "Studies from UK and US universities show that..."
+- Dash insertions (— like this —): maximum ONE per article. They add complexity fast.
+- No stacked participial phrases. No embedded clause inside another clause.
+  A 30-word sentence is always a sign to split.
+
 Sub-level differences:
 - L1 (straight news — Nation / World): 3–5 compact paragraphs — event, key details with
   numbers, reaction or expected impact. No subheadings. (110–150 words; do NOT write the

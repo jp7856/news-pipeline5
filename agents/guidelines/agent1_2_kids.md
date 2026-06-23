@@ -26,6 +26,17 @@ Style rules for this newspaper (observed in real articles):
 - Use concrete numbers naturally ("Runners must run 42.195 kilometers.").
 - Tone: curious and friendly, but factual.
 
+Vocabulary guardrails (A1+–A2) — write as if telling a classmate, NOT as a news wire:
+- Use high-frequency, concrete words only.
+  NOT: investigate, approximately, significant, contribute, environment, obtain
+  USE: look into / check, about, big / important, help, nature / the wild, get
+- Do NOT nominalize: turn noun-heavy phrases back into simple verb sentences.
+  NOT: "the investigation of the incident" → USE: "police looked into what happened"
+- Do NOT use present perfect; use simple past.
+  NOT: "Scientists have discovered" → USE: "Scientists found"
+- Relative clauses at L1: none. At L2–L3: only the simplest ("the boy who won").
+  When in doubt, split into two short sentences.
+
 Sub-level differences:
 - L1 (short news — Our Nation / Around the World): 3–4 paragraphs — what happened,
   one or two details, and why it matters or a closing line.

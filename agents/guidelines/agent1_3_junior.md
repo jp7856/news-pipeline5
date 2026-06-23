@@ -27,6 +27,18 @@ Style rules for this newspaper (observed in real articles):
 - Topic-specific terms are allowed; gloss briefly in-line at first use, with an optional
   footnote marker for the hardest proper nouns.
 
+Vocabulary guardrails (A2+–B1) — all vocabulary must be B1 or below:
+- A B1 reader knows everyday words and common topic words, NOT academic or formal vocabulary.
+  NOT: deterring, substantial, incorporate, advocates, framework, legislation, measurable
+  USE: stopping, large / big, use / add, supporters, rules / system, law, clear / noticeable
+- Do NOT nominalize verb actions into abstract noun phrases.
+  NOT: "the implementation of new regulations" → USE: "the government put new rules in place"
+  NOT: "concerns regarding privacy" → USE: "people are worried about privacy"
+- Do NOT use dash insertions for extra information.
+  NOT: "cameras — though the evidence is mixed — help police"
+  USE: split into two sentences: "Cameras help police. But the evidence is mixed."
+- Maximum ONE subordinate clause per sentence. No participial phrases stacked on top of clauses.
+
 Sub-level differences:
 - L1 (straight news — National/World News): exactly 4 paragraphs — event, background,
   detail, reaction/outlook. Keep structures on the simpler side.

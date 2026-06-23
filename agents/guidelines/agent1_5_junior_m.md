@@ -38,6 +38,18 @@ Style rules for this newspaper (observed in real articles):
   (e.g., "Def Con CTF*"). Use concrete facts, dates, and places.
 - Close with significance or what happens next ("By 2030, the company expects to ...").
 
+Vocabulary guardrails (B1–B1+) — motivated middle-school student, NOT adult newspaper:
+- B1+ means the student works a little but can follow. Academic/formal register is off-limits.
+  NOT: advocates, proliferation, framework, regulations, incorporate, substantially
+  USE: supporters, spread, rules / system, rules, use / add, a lot / much more
+- Academic nominalizations must be paraphrased.
+  NOT: "the proliferation of surveillance infrastructure"
+  USE: "more and more cameras are being installed everywhere"
+- Introduce one domain term per paragraph at most; always gloss it in plain language
+  right away in the same sentence.
+- One complex sentence structure per paragraph is the maximum. Do not chain participial
+  phrases or embed a clause inside another clause.
+
 Sub-level differences:
 - L1 (Nation / Science / Culture news & explainers): 5–7 paragraphs — frame the topic,
   explain the key facts across the middle paragraphs, close with an outcome or outlook.
