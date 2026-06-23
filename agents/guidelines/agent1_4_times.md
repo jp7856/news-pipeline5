@@ -14,7 +14,7 @@ Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사·Vo
 
 NE Times — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
-This is the HIGHEST of the five newspapers (high school, B1+ to B2). It must read like a real adult newspaper, clearly more formal and information-dense than Junior M.
+This is the HIGHEST of the five newspapers (high school, B1 to B2). Its L2/L3 features (B2) are the most demanding texts in the whole series; its short L1 news sits around B1. It must read like a real adult newspaper, clearly more formal and information-dense than Junior M at the feature level.
 
 Style rules for this newspaper (observed in real articles):
 - Full formal newspaper register; objective tone, no direct address to the reader
@@ -36,6 +36,7 @@ Sub-level differences:
   60–80-word "Briefs" format.)
 - L2 (headline / feature): 5–8 paragraphs with fuller background, at least one quote,
   and a closing paragraph of significance or outlook. (260–300 words.)
-- L3 (in-depth report): 6–10 paragraphs covering multiple perspectives or stakeholders
-  (government, experts, citizens), causes and consequences, and broader implications;
-  reported speech and analyst commentary throughout. (280–340 words.)
+- L3 (in-depth report): SAME length and difficulty band as L2 (~280 words, B2) — the
+  difference is STRUCTURE, not length: 7–10 shorter paragraphs covering multiple
+  perspectives or stakeholders (government, experts, citizens), causes and consequences,
+  and broader implications; reported speech and analyst commentary throughout. (280–310 words.)

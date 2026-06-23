@@ -32,6 +32,7 @@ Sub-level differences:
   detail, reaction/outlook. Keep structures on the simpler side.
 - L2 (news / explainer — incl. Science): 4–5 paragraphs with fuller background or a
   step-by-step explanation (science topics often walk through a process).
-- L3 (Focus / People / World Tour feature): a 1–2 paragraph intro, then exactly 2
-  subheaded sections (noun-phrase subheadings such as "Obsession with Butterflies",
-  "The Human Calculator"), each 1–2 paragraphs. Sentences stay 14–18 words.
+- L3 (Focus / People / World Tour feature): SAME difficulty as L2 (B1) — longer and
+  subheaded, not harder. A 1–2 paragraph intro, then exactly 2 subheaded sections
+  (noun-phrase subheadings such as "Obsession with Butterflies", "The Human Calculator"),
+  each 1–2 paragraphs. Sentences stay 14–18 words.

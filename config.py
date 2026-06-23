@@ -53,14 +53,14 @@ LEVEL_CONFIG: dict[str, dict] = {
     },
     "kids": {
         "newspaper":        "NE Times Kids",
-        "cefr":             "A1+ to A2+",
+        "cefr":             "A1+ to A2",
         "target":           "elementary school students (ages 8–11)",
         "word_count_range": "60–180",
         "paragraph_count":  "3–11",
     },
     "junior": {
         "newspaper":        "NE Times Junior",
-        "cefr":             "A2+ to B1+",
+        "cefr":             "A2+ to B1",
         "target":           "upper elementary students (ages 11–13)",
         "word_count_range": "115–230",
         "paragraph_count":  "4–7",
@@ -74,9 +74,9 @@ LEVEL_CONFIG: dict[str, dict] = {
     },
     "times": {
         "newspaper":        "NE Times",
-        "cefr":             "B1+ to B2",
+        "cefr":             "B1 to B2",
         "target":           "high school students (ages 16–18)",
-        "word_count_range": "110–340",
+        "word_count_range": "110–310",
         "paragraph_count":  "3–10",
     },
 }
@@ -96,24 +96,28 @@ SUBLEVEL_CONFIG: dict[str, dict[str, dict]] = {
         "L2": {"cefr": "A1",     "word_count_range": "55–90",   "sentence_length": "5–8 words",   "paragraph_count": "4–6"},
     },
     "kids": {
-        "L1": {"cefr": "A1+",    "word_count_range": "60–75",   "sentence_length": "7–10 words",  "paragraph_count": "3–4"},
-        "L2": {"cefr": "A2",     "word_count_range": "75–130",  "sentence_length": "8–12 words",  "paragraph_count": "4–6"},
-        "L3": {"cefr": "A2+",    "word_count_range": "130–180", "sentence_length": "9–12 words",  "paragraph_count": "8–11"},
+        # L2 = 표준 뉴스(71–103 클러스터). 128–168 기획(Close Up/People&Places)은 별도 포맷이라 L2 기본 생성에서 제외.
+        "L1": {"cefr": "A1+", "word_count_range": "60–75",   "sentence_length": "7–10 words",  "paragraph_count": "3–4"},
+        "L2": {"cefr": "A2",  "word_count_range": "75–105",  "sentence_length": "8–12 words",  "paragraph_count": "4–6"},
+        # L3은 L2와 난이도(A2) 동일 — 길이·포맷("What's Hot" 3항목)으로만 구분.
+        "L3": {"cefr": "A2",  "word_count_range": "130–180", "sentence_length": "9–12 words",  "paragraph_count": "8–11"},
     },
     "junior": {
         "L1": {"cefr": "A2+", "word_count_range": "115–150", "sentence_length": "10–14 words", "paragraph_count": "4"},
         "L2": {"cefr": "B1",  "word_count_range": "150–190", "sentence_length": "12–16 words", "paragraph_count": "4–5"},
-        "L3": {"cefr": "B1+", "word_count_range": "190–230", "sentence_length": "14–18 words", "paragraph_count": "6–7"},
+        # L3은 L2와 난이도(B1) 동일 — 소제목·구체 내용이라 더 길 뿐 더 어렵진 않음.
+        "L3": {"cefr": "B1",  "word_count_range": "190–230", "sentence_length": "14–18 words", "paragraph_count": "6–7"},
     },
     "junior_m": {  # 유일한 월간지(중학생·시사/이슈 중심) — L1~L2만 존재. JUNIOR와 길이 겹침 정상.
         "L1": {"cefr": "B1",  "word_count_range": "150–185", "sentence_length": "11–15 words", "paragraph_count": "5–7"},
         "L2": {"cefr": "B1+", "word_count_range": "185–215", "sentence_length": "12–16 words", "paragraph_count": "6–8"},
     },
     "times": {
-        # L1 = 압축 뉴스(110–150). 60–80단어 Briefs는 생성 대상에서 제외(매체 변별 위해).
-        "L1": {"cefr": "B1+", "word_count_range": "110–150", "sentence_length": "13–18 words", "paragraph_count": "3–5"},
-        "L2": {"cefr": "B2",  "word_count_range": "260–300", "sentence_length": "15–20 words", "paragraph_count": "5–8"},
-        "L3": {"cefr": "B2",  "word_count_range": "280–340", "sentence_length": "16–20 words", "paragraph_count": "6–10"},
+        # L1 = 압축 뉴스(110–150). 60–80단어 Briefs는 생성 대상에서 제외(매체 변별 위해). 실측상 B1.
+        "L1": {"cefr": "B1", "word_count_range": "110–150", "sentence_length": "13–18 words", "paragraph_count": "3–5"},
+        # L2·L3은 길이(260–300)·난이도(B2) 사실상 동일 — L3은 문단 수↑·다관점 구조로 구분(VoA 장문은 이상치 제외).
+        "L2": {"cefr": "B2", "word_count_range": "260–300", "sentence_length": "15–20 words", "paragraph_count": "5–8"},
+        "L3": {"cefr": "B2", "word_count_range": "280–310", "sentence_length": "16–20 words", "paragraph_count": "7–10"},
     },
 }
 

@@ -12,7 +12,7 @@ Close Up·People & Places·My Diary (L2 기획), What's Hot (L3)
 
 NE Times Kids — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
-This is a real newspaper for children (A1+ to A2+): factual but friendly. It is one step above Kinder (real news facts, not single-fact baby sentences) and one step below Junior (still mostly simple sentences, almost no relative clauses).
+This is a real newspaper for children (A1+ to A2): factual but friendly. It is one step above Kinder (real news facts, not single-fact baby sentences) and one step below Junior (still mostly simple sentences, almost no relative clauses).
 
 Style rules for this newspaper (observed in real articles):
 - A paragraph is 1–2 short sentences. Tell real news facts, simply.
@@ -31,6 +31,7 @@ Sub-level differences:
   one or two details, and why it matters or a closing line.
 - L2 (standard news / explainer): 4–6 paragraphs with a little background and a
   closing fact or quote.
-- L3 ("What's Hot" feature): a 2-paragraph intro that ends with a lead-in such as
+- L3 ("What's Hot" feature): SAME difficulty as L2 (A2) — only longer and differently
+  formatted, not harder. A 2-paragraph intro that ends with a lead-in such as
   "Let's look at three ...", followed by exactly 3 subheaded items, each 2 short
   paragraphs. Sentences stay 9–12 words.
