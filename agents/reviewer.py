@@ -123,8 +123,13 @@ class ReviewerAgent:
         reason = data.get("reason", "")
         fix_targets = [t for t in data.get("fix_targets", []) if t in self.FIX_TARGETS]
 
-        # 코드 레벨 강제: 워드카운트·평균 문장 길이가 목표 범위를 벗어나면 LLM 판정과 무관하게 거부.
+        # 코드 레벨 강제: 워드카운트·평균 문장 길이·CEFR이 목표 범위를 벗어나면 LLM 판정과 무관하게 거부.
         # → _fix_rejected가 이 사유로 기사를 재작성한다(최대 2회).
+        from agents.level_agents import cefr_key_for
+        from agents.sub_agents.cefr_checker import validate as cefr_validate
+        cefr_key = cefr_key_for(pkg.level, pkg.sub_level)
+        cefr_result = cefr_validate(article.text, cefr_key) if cefr_key else None
+
         if not wc_in_range:
             approved = False
             wc_note = f"워드카운트 {article.word_count}단어가 목표 범위({wc_range})를 벗어남 — 범위 안으로 분량 조정 필요"
@@ -135,6 +140,12 @@ class ReviewerAgent:
             approved = False
             sl_note = f"평균 문장 길이 {avg_sl:.1f}단어가 목표 범위({sl_range})를 벗어남 — 문장 길이 조정 필요(난이도/CEFR)"
             reason = f"{sl_note}. {reason}" if reason else sl_note
+            if "article" not in fix_targets:
+                fix_targets.append("article")
+        if cefr_result and not cefr_result.passed:
+            approved = False
+            cefr_note = f"CEFR 난이도 위반({'; '.join(cefr_result.violations[:2])})"
+            reason = f"{cefr_note}. {reason}" if reason else cefr_note
             if "article" not in fix_targets:
                 fix_targets.append("article")
 

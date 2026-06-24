@@ -117,12 +117,15 @@ class ContentProducerAgent:
 
         self._cancel_check()
 
-        # ── Step 2: 표절 + 워드카운트 + 평균 문장 길이 (셋 다 만족할 때까지 재작성, 최대 3회) ──
+        # ── Step 2: 표절 + 워드카운트 + 평균 문장 길이 + CEFR (넷 다 만족할 때까지 재작성, 최대 3회) ──
         # 초안 단계에서 분량·난이도를 맞춘다 — 범위 밖 초안을 검토에 넘기지 않기 위함.
         # 목표 범위는 config가 단일 기준 (Writer·검수와 동일 소스).
+        from agents.level_agents import cefr_key_for
+        from agents.sub_agents.cefr_checker import validate as cefr_validate, build_feedback as cefr_feedback
         _cfg, _ = self._writer._merge_config(level, sub_level)
         wc_range = _cfg.get("word_count_range", "")
         sl_range = _cfg.get("sentence_length", "")
+        cefr_key = cefr_key_for(level, sub_level)
 
         plagiarism_report = self._plagcheck.run(article)
         max_retries = 3
@@ -131,7 +134,9 @@ class ContentProducerAgent:
             wc_ok = self._writer._word_count_in_range(article.word_count, wc_range)
             avg_sl = self._writer._avg_sentence_length(article.text)
             sl_ok = self._writer._sentence_length_in_range(avg_sl, sl_range)
-            if plagiarism_report.passed and wc_ok and sl_ok:
+            cefr_result = cefr_validate(article.text, cefr_key) if cefr_key else None
+            cefr_ok = cefr_result.passed if cefr_result is not None else True
+            if plagiarism_report.passed and wc_ok and sl_ok and cefr_ok:
                 break
             attempt += 1
             self._cancel_check()
@@ -178,6 +183,13 @@ class ContentProducerAgent:
                     f"falls WITHIN {sl_range} — this controls the reading difficulty (CEFR). "
                     f"Keep the facts, word count target, and fully original wording."
                 )
+            if cefr_result and not cefr_result.passed:
+                self._log(
+                    f"[{self.AGENT_LABEL}] CEFR 난이도 위반 — 재작성 {attempt}/{max_retries}회"
+                )
+                for v in cefr_result.violations:
+                    self._log(f"[{self.AGENT_LABEL}]   ⤷ {v}")
+                notes.append(cefr_feedback(cefr_result))
 
             revised_topic = (
                 f"{topic}\n\n[REVISION NOTE — attempt {attempt}]\n" + "\n\n".join(notes)

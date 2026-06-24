@@ -13,6 +13,26 @@ from models import Level
 from agents.content_producer import ContentProducerAgent
 
 
+_CEFR_PREFIX: dict[str, str] = {
+    "kinder":   "KINDER",
+    "kids":     "KIDS",
+    "junior":   "JUNIOR",
+    "junior_m": "JUNIORM",  # cefr_checker 키는 언더스코어 없음
+    "times":    "TIMES",
+}
+
+
+def cefr_key_for(level: Level, sub_level: str) -> str | None:
+    """Level + sub_level → cefr_checker.LEVELS 키 (예: 'TIMES_L2').
+
+    매핑에 없는 조합은 None 반환 → 호출 측에서 CEFR 검사를 건너뜀.
+    """
+    prefix = _CEFR_PREFIX.get(level.value)
+    if not prefix or not sub_level:
+        return None
+    return f"{prefix}_{sub_level}"
+
+
 def pick_sublevel(level: Level) -> str:
     """매체 기준에 맞는 레벨 범위 안에서 랜덤하게 서브레벨을 배정한다.
 
