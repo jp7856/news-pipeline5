@@ -126,6 +126,8 @@ class ContentProducerAgent:
         wc_range = _cfg.get("word_count_range", "")
         sl_range = _cfg.get("sentence_length", "")
         cefr_key = cefr_key_for(level, sub_level)
+        if cefr_key is None:
+            self._log(f"[{self.AGENT_LABEL}] CEFR 검증 건너뜀 — {level.value} {sub_level} 임계값 미설정")
 
         plagiarism_report = self._plagcheck.run(article)
         max_retries = 3

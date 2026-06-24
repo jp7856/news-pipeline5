@@ -25,12 +25,15 @@ _CEFR_PREFIX: dict[str, str] = {
 def cefr_key_for(level: Level, sub_level: str) -> str | None:
     """Level + sub_level → cefr_checker.LEVELS 키 (예: 'TIMES_L2').
 
-    매핑에 없는 조합은 None 반환 → 호출 측에서 CEFR 검사를 건너뜀.
+    LEVELS에 등록되지 않은 조합(소문자·오타·미정의 레벨 포함)은 None 반환
+    → 호출 측에서 CEFR 검사를 건너뛴다.
     """
+    from agents.sub_agents.cefr_checker import LEVELS
     prefix = _CEFR_PREFIX.get(level.value)
     if not prefix or not sub_level:
         return None
-    return f"{prefix}_{sub_level}"
+    key = f"{prefix}_{sub_level}"
+    return key if key in LEVELS else None
 
 
 def pick_sublevel(level: Level) -> str:

@@ -128,6 +128,8 @@ class ReviewerAgent:
         from agents.level_agents import cefr_key_for
         from agents.sub_agents.cefr_checker import validate as cefr_validate
         cefr_key = cefr_key_for(pkg.level, pkg.sub_level)
+        if cefr_key is None:
+            self._log(f"[Agent5] CEFR 검증 건너뜀 — {pkg.level.value} {pkg.sub_level} 임계값 미설정")
         cefr_result = cefr_validate(article.text, cefr_key) if cefr_key else None
 
         if not wc_in_range:

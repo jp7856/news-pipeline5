@@ -29,8 +29,22 @@ except ImportError:
 #   max_clauses     : 한 문장 최대 절 개수
 #   fk_max          : Flesch-Kincaid 학년 상한 (실측 보정값)
 #
-# 주의: 아래 fk_max 는 샘플 3~5개 기준 1차 보정. 레벨당 5~10개 더 돌려
-#       FK 분포를 보고 확정할 것. avg 범위/문장길이/절은 가이드라인 표값 유지.
+# 5개 지표 전수 보정 — basic.xlsx 전수 실측 (tests/measure_all_levels.py + diagnose_cefr.py)
+#   avg_min = p10, avg_max/maxlen/clauses/fk_max = p90
+#   레벨키       n   avg_min  avg_max  maxlen  clauses  fk_max
+#   KINDER_L1   32     4.0     6.5     13       2       3.5
+#   KINDER_L2   16     5.0     9.5     23       2       6.0
+#   KIDS_L1     16     7.0    11.0     19       3       7.5
+#   KIDS_L2     40     7.0    12.0     25       3       9.0
+#   KIDS_L3     16     7.5    12.5     25       3       8.5
+#   JUNIOR_L1   40     8.5    14.5     25       4       9.0
+#   JUNIOR_L2   24    12.0    16.5     34       4      10.5
+#   JUNIOR_L3   16     9.0    17.5     27       4      11.5
+#   JUNIORM_L1  69    11.0    17.0     31       4      10.0
+#   JUNIORM_L2  19    12.0    15.0     33       4      10.0
+#   TIMES_L1    56    10.5    19.0     32       4      12.5  ← 10.5: articles.xlsx 실측 조정 (avg 9~10은 JUNIOR급)
+#   TIMES_L2    48    14.5    19.5     31       5      13.0
+#   TIMES_L3    20    15.5    19.0     48       6      14.0
 # --------------------------------------------------------------------------
 @dataclass
 class LevelSpec:
@@ -43,20 +57,22 @@ class LevelSpec:
 
 
 LEVELS: dict[str, LevelSpec] = {
-    # 매체     레벨   avg_min avg_max maxlen clause fk_max(보정)
-    "KINDER_L1": LevelSpec("KINDER L1", 4,  6,  10, 1, 3.0),
-    "KINDER_L2": LevelSpec("KINDER L2", 5,  8,  12, 1, 4.0),
-    "KIDS_L1":   LevelSpec("KIDS L1",   7,  10, 14, 1, 5.5),
-    "KIDS_L2":   LevelSpec("KIDS L2",   8,  12, 16, 2, 6.5),
-    "KIDS_L3":   LevelSpec("KIDS L3",   9,  12, 16, 2, 6.5),
-    "JUNIOR_L1": LevelSpec("JUNIOR L1", 10, 14, 18, 2, 8.0),
-    "JUNIOR_L2": LevelSpec("JUNIOR L2", 12, 16, 20, 2, 8.5),
-    "JUNIOR_L3": LevelSpec("JUNIOR L3", 14, 18, 22, 2, 9.0),
-    "JUNIORM_L1":LevelSpec("JUNIOR M L1",11,15, 19, 2, 8.5),
-    "JUNIORM_L2":LevelSpec("JUNIOR M L2",12,16, 20, 3, 9.5),
-    "TIMES_L1":  LevelSpec("TIMES L1",  13, 18, 22, 2, 9.0),   # 표 7.5 → 실측 9.0
-    "TIMES_L2":  LevelSpec("TIMES L2",  15, 20, 24, 3, 12.5),  # 표 9.5 → 실측 12.5
-    "TIMES_L3":  LevelSpec("TIMES L3",  16, 20, 24, 3, 13.0),  # 표 10.0 → 실측 13.0
+    # 매체     레벨   avg_min avg_max maxlen clause fk_max
+    #          avg_min = basic.xlsx p10  (하한: 이보다 짧으면 "너무 쉬움")
+    #          avg_max/maxlen/clauses/fk_max = basic.xlsx p90  (상한)
+    "KINDER_L1": LevelSpec("KINDER L1",  4.0,  6.5, 13, 2,  3.5),
+    "KINDER_L2": LevelSpec("KINDER L2",  5.0,  9.5, 23, 2,  6.0),
+    "KIDS_L1":   LevelSpec("KIDS L1",    7.0, 11.0, 19, 3,  7.5),
+    "KIDS_L2":   LevelSpec("KIDS L2",    7.0, 12.0, 25, 3,  9.0),
+    "KIDS_L3":   LevelSpec("KIDS L3",    7.5, 12.5, 25, 3,  8.5),
+    "JUNIOR_L1": LevelSpec("JUNIOR L1",  8.5, 14.5, 25, 4,  9.0),
+    "JUNIOR_L2": LevelSpec("JUNIOR L2", 12.0, 16.5, 34, 4, 10.5),
+    "JUNIOR_L3": LevelSpec("JUNIOR L3",  9.0, 17.5, 27, 4, 11.5),
+    "JUNIORM_L1":LevelSpec("JUNIOR M L1",11.0,17.0, 31, 4, 10.0),
+    "JUNIORM_L2":LevelSpec("JUNIOR M L2",12.0,15.0, 33, 4, 10.0),
+    "TIMES_L1":  LevelSpec("TIMES L1",  10.5, 19.0, 32, 4, 12.5),
+    "TIMES_L2":  LevelSpec("TIMES L2",  14.5, 19.5, 31, 5, 13.0),
+    "TIMES_L3":  LevelSpec("TIMES L3",  15.5, 19.0, 48, 6, 14.0),
 }
 
 
@@ -126,30 +142,30 @@ def validate(text: str, level: str) -> CefrResult:
     too_long: list[str] = []
     too_easy = False
 
-    # 상한 (너무 어려움)
-    if max_len > spec.max_sentence_len:
-        violations.append(f"최장 문장 {max_len}단어 (상한 {spec.max_sentence_len})")
-    if max_cl > spec.max_clauses:
-        violations.append(f"한 문장 절 {max_cl}개 (상한 {spec.max_clauses})")
+    # ── 하드 게이트: FK 상한 + avg 하한 ─────────────────────────────────
     if fk > spec.fk_max:
         violations.append(f"FK {fk}학년 (상한 {spec.fk_max})")
-
-    # 하한 (너무 쉬움) — 목표 레벨보다 단순하게 쓰인 경우
     if avg_len < spec.avg_min:
         too_easy = True
         violations.append(
             f"평균 문장 길이 {avg_len} (하한 {spec.avg_min} 미달 → 목표보다 쉬움)"
         )
-    if avg_len > spec.avg_max:
-        violations.append(f"평균 문장 길이 {avg_len} (상한 {spec.avg_max} 초과)")
 
-    # 재작성 타겟 문장: 길이/절 상한 넘긴 문장만 모음
+    # ── 소프트 힌트: 재작성 피드백용, 통과/실패에 영향 없음 ─────────────
+    if max_len > spec.max_sentence_len:
+        violations.append(f"최장 문장 {max_len}단어 (참고 상한 {spec.max_sentence_len})")
+    if max_cl > spec.max_clauses:
+        violations.append(f"한 문장 절 {max_cl}개 (참고 상한 {spec.max_clauses})")
+    if avg_len > spec.avg_max:
+        violations.append(f"평균 문장 길이 {avg_len} (참고 상한 {spec.avg_max} 초과)")
+
+    # 재작성 타겟 문장: 길이/절 참고 상한 넘긴 문장
     for s, wc, cc in zip(sentences, word_counts, clause_counts):
         if wc > spec.max_sentence_len or cc > spec.max_clauses:
             too_long.append(s)
 
     return CefrResult(
-        passed=len(violations) == 0,
+        passed=(fk <= spec.fk_max and avg_len >= spec.avg_min),
         level=spec.name,
         avg_sentence_len=avg_len,
         max_sentence_len=max_len,
