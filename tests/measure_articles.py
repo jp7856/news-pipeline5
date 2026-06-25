@@ -20,6 +20,10 @@ EXCLUDE_SECTIONS = {
     "Cover",                           # KIDS avg 45wc
     "Q & A",                           # TIMES 인터뷰 Q&A 포맷(avg 83wc)
     "NE You",                          # 학생 투고 공간 — 파이프라인 생성 대상 아님
+    "My Journal", "Book Review",       # TIMES 독자 기고·서평 — 파이프라인 생성 대상 아님
+    "Stories", "Story",                # TIMES 창작소설 — 파이프라인 생성 대상 아님
+    "Readings for Junior",             # TIMES 보충읽기 — 파이프라인 생성 대상 아님
+    "VoA Broadcast News",              # TIMES L3 방송 스크립트 — 파이프라인 생성 대상 아님
 }
 
 # 레벨별 단어 수 하한 — 섹션 필터에서 빠진 단신 제거

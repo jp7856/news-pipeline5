@@ -13,6 +13,10 @@ EXCLUDE_SECTIONS = {
     "Photo News", "Briefs", "Star Brief", "News in Brief",
     "Cartoon", "Did You Know", "Did You Know?", "Debating", "Cover", "Q & A",
     "NE You",
+    "My Journal", "Book Review",       # TIMES 독자 기고·서평
+    "Stories", "Story",                # TIMES 창작소설
+    "Readings for Junior",             # TIMES 보충읽기
+    "VoA Broadcast News",              # TIMES L3 방송 스크립트
 }
 MIN_WC = 100
 
