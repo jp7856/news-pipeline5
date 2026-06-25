@@ -108,6 +108,8 @@ def _count_heading_speakers(lines: list[str]) -> tuple[int, list[str]]:
     """패턴 (b) 단독줄 포맷 — (감지 횟수, 예시 문자열 리스트) 반환.
 
     이름만 있는 줄 바로 다음 비공백 줄에 _SPEAKER_CONTENT_MIN 단어 이상이면 감지.
+    소제목 반복 체크: 이름(또는 접두 5자)이 다음 줄 본문에 재등장하면 소제목으로 판정해
+    화자로 카운트하지 않는다.  (예: "Honesty\\nA good leader is honest." → honest ⊇ hones)
     """
     count = 0
     examples: list[str] = []
@@ -125,10 +127,18 @@ def _count_heading_speakers(lines: list[str]) -> tuple[int, list[str]]:
             if stripped:
                 next_content = stripped
                 break
-        if len(re.findall(r"\w+", next_content)) >= _SPEAKER_CONTENT_MIN:
-            count += 1
-            if len(examples) < 2:
-                examples.append(f"{name}: {next_content[:60]}")
+        if len(re.findall(r"\w+", next_content)) < _SPEAKER_CONTENT_MIN:
+            continue
+        # 소제목 반복 체크 — 이름이 본문에 재등장하면 소제목(topic heading)으로 판정
+        name_l    = name.lower()
+        content_l = next_content.lower()
+        if name_l in content_l:
+            continue
+        if len(name_l) >= 5 and re.search(r"\b" + re.escape(name_l[:5]), content_l):
+            continue
+        count += 1
+        if len(examples) < 2:
+            examples.append(f"{name}: {next_content[:60]}")
     return count, examples
 
 
