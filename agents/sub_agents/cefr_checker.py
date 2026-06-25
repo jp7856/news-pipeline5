@@ -32,11 +32,11 @@ except ImportError:
 # 5개 지표 전수 보정 — basic.xlsx 전수 실측 (tests/measure_all_levels.py + diagnose_cefr.py)
 #   avg_min = p10, avg_max/maxlen/clauses/fk_max = p90
 #   레벨키       n   avg_min  avg_max  maxlen  clauses  fk_max
-#   KINDER_L1   32     4.0     6.5     13       2       3.5
-#   KINDER_L2   16     5.0     9.5     23       2       6.0
-#   KIDS_L1     16     7.0    11.0     19       3       7.5
-#   KIDS_L2     40     7.0    12.0     25       3       9.0
-#   KIDS_L3     16     7.5    12.5     25       3       8.5
+#   KINDER_L1   32     3.8     6.5     13       2       3.5   ← articles.xlsx 보정 (2026-06)
+#   KINDER_L2   16     4.2     9.5     23       2       6.0   ← articles.xlsx 보정 (2026-06)
+#   KIDS_L1     16     5.0    11.0     19       3       7.5   ← articles.xlsx 보정 (2026-06)
+#   KIDS_L2     40     5.7    12.0     25       3       9.0   ← articles.xlsx 보정 (2026-06)
+#   KIDS_L3     16     6.7    12.5     25       3       8.5   ← articles.xlsx 보정 (2026-06)
 #   JUNIOR_L1   40    10.5    14.5     25       4       9.0  ← NE You 제외 기준 (비-NE p10)
 #   JUNIOR_L2   24    10.5    16.5     34       4      10.5  ← 경계 샘플(10.8~12.0) 99건 수용
 #   JUNIOR_L3   16    11.5    17.5     27       4      11.5  ← World Tour 경계 기준 (p10)
@@ -60,11 +60,11 @@ LEVELS: dict[str, LevelSpec] = {
     # 매체     레벨   avg_min avg_max maxlen clause fk_max
     #          avg_min = basic.xlsx p10  (하한: 이보다 짧으면 "너무 쉬움")
     #          avg_max/maxlen/clauses/fk_max = basic.xlsx p90  (상한)
-    "KINDER_L1": LevelSpec("KINDER L1",  4.0,  6.5, 13, 2,  3.5),
-    "KINDER_L2": LevelSpec("KINDER L2",  5.0,  9.5, 23, 2,  6.0),
-    "KIDS_L1":   LevelSpec("KIDS L1",    7.0, 11.0, 19, 3,  7.5),
-    "KIDS_L2":   LevelSpec("KIDS L2",    7.0, 12.0, 25, 3,  9.0),
-    "KIDS_L3":   LevelSpec("KIDS L3",    7.5, 12.5, 25, 3,  8.5),
+    "KINDER_L1": LevelSpec("KINDER L1",  3.8,  6.5, 13, 2,  3.5),
+    "KINDER_L2": LevelSpec("KINDER L2",  4.2,  9.5, 23, 2,  6.0),
+    "KIDS_L1":   LevelSpec("KIDS L1",    5.0, 11.0, 19, 3,  7.5),
+    "KIDS_L2":   LevelSpec("KIDS L2",    5.7, 12.0, 25, 3,  9.0),
+    "KIDS_L3":   LevelSpec("KIDS L3",    6.7, 12.5, 25, 3,  8.5),
     "JUNIOR_L1": LevelSpec("JUNIOR L1", 10.5, 14.5, 25, 4,  9.0),
     "JUNIOR_L2": LevelSpec("JUNIOR L2", 10.5, 16.5, 34, 4, 10.5),
     "JUNIOR_L3": LevelSpec("JUNIOR L3", 11.5, 17.5, 27, 4, 11.5),

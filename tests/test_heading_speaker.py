@@ -27,6 +27,9 @@ EXCLUDE_SECTIONS = {
     "Stories", "Story",                # TIMES 창작소설
     "Readings for Junior",             # TIMES 보충읽기
     "VoA Broadcast News",              # TIMES L3 방송 스크립트
+    "Think About It",                  # KINDER 토론/의견나열 포맷
+    "My Diary",                        # KINDER 1인칭 일기체
+    # Speak Out: 섹션 단위 제외 금지 — classifier DIALOGUE 판정만 제외
 }
 MIN_WC_BY_SHEET = {
     "KINDER": 0, "KIDS": 50, "JUNIOR": 80, "JUNIOR M": 100, "TIMES": 100,
@@ -47,7 +50,7 @@ print("=" * 70)
 
 def unit(label: str, text: str, expected_count: int) -> None:
     lines = text.splitlines()
-    count, _ = _count_heading_speakers(lines)
+    count, _, _ = _count_heading_speakers(lines)
     ok = count == expected_count
     print(f"  {'✓' if ok else '✗'} count={count} (기대={expected_count})  {label}")
     if not ok:

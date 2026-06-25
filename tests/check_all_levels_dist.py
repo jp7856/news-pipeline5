@@ -17,6 +17,9 @@ EXCLUDE_SECTIONS = {
     "Stories", "Story",                # TIMES 창작소설
     "Readings for Junior",             # TIMES 보충읽기
     "VoA Broadcast News",              # TIMES L3 방송 스크립트
+    "Think About It",                  # KINDER 토론/의견나열 포맷
+    "My Diary",                        # KINDER 1인칭 일기체
+    # Speak Out: 섹션 단위 제외 금지 — classifier DIALOGUE 판정만 제외
 }
 
 # 시트명 → (레벨 표기 접두사, MIN_WC)
@@ -65,6 +68,8 @@ for sheet_name, (prefix, min_wc) in SHEET_CFG.items():
         m = re.search(r"\d+", lv)
         if not m:
             continue
+        if int(m.group()) == 0:
+            continue                                      # KIDS L0 = 2010~2012 아카이브, 현행 아님
         key = f"{prefix}_L{m.group()}"
         if key not in LEVELS:
             continue

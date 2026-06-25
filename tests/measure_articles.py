@@ -24,6 +24,9 @@ EXCLUDE_SECTIONS = {
     "Stories", "Story",                # TIMES 창작소설 — 파이프라인 생성 대상 아님
     "Readings for Junior",             # TIMES 보충읽기 — 파이프라인 생성 대상 아님
     "VoA Broadcast News",              # TIMES L3 방송 스크립트 — 파이프라인 생성 대상 아님
+    "Think About It",                  # KINDER 토론/의견나열 포맷 — 파이프라인 생성 대상 아님
+    "My Diary",                        # KINDER 1인칭 일기체 — 파이프라인 생성 대상 아님
+    # Speak Out: 섹션 단위 제외 금지 — classifier DIALOGUE 판정만 제외
 }
 
 # 레벨별 단어 수 하한 — 섹션 필터에서 빠진 단신 제거
@@ -65,6 +68,7 @@ for sheet_name in ["KINDER", "KIDS", "JUNIOR", "TIMES", "JUNIOR M"]:
         if wc < MIN_WC_BY_SHEET.get(sheet_name, 0): continue  # 레벨별 단신 필터
         num = re.search(r"\d+", lv)
         if not num: continue
+        if int(num.group()) == 0: continue                # KIDS L0 = 2010~2012 아카이브, 현행 아님
         key = f"{PREFIX[sheet_name]}_L{num.group()}"
         if key not in LEVELS: continue
         art_cls = classify(txt, key)

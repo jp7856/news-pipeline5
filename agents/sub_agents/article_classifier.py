@@ -3,9 +3,15 @@ article_classifier.py — 기사 유형 판별 (BRIEF / DIALOGUE / ARTICLE)
 
 CEFR 난이도 게이트 앞단에서 호출. 유형에 따라 게이트를 건너뛰거나 통과시킨다.
   BRIEF    : 레벨별 단어수 임계값 미만 → CEFR SKIP
-  DIALOGUE : 화자줄 3회 이상 → CEFR SKIP. 두 가지 패턴을 감지:
-               (a) 콜론 포맷   "Sue: I think..."  (같은 줄에 이름+콜론+발화)
+  DIALOGUE : 아래 조건 중 하나 충족 시 CEFR SKIP. 두 가지 패턴을 감지:
+               (a) 콜론 포맷   "Sue: I think..." / "Sue (yes): I think..."
+                                (같은 줄에 이름+선택적삽입구+콜론+발화)
                (b) 단독줄 포맷 "Henry\\n발화내용"  (이름만 한 줄, 다음 줄에 발화)
+             판정 조건:
+               조건1: total_speakers >= DIALOGUE_THRESHOLD(3)  — 기존
+               조건2: total_speakers >= 2  AND  서로 다른 화자 >= 2
+                      AND  비공백 줄 중 화자줄 비율 >= TWO_SPEAKER_RATIO_MIN(0.20)
+                      — KINDER/KIDS 단편 2인 대화(Diane/Robert, Yes/No) 포착용
   ARTICLE  : 나머지 → CEFR 게이트로 진행
 """
 
@@ -55,12 +61,14 @@ STRUCTURAL_MARKERS: frozenset[str] = frozenset({
     "Fact", "Opinion", "Pro", "Con", "Question", "Answer", "Response",
 })
 
-DIALOGUE_THRESHOLD = 3     # 화자줄이 이 수 이상이면 DIALOGUE
-_SPEAKER_CONTENT_MIN = 5   # 발화 내용 최소 단어수
+DIALOGUE_THRESHOLD      = 3     # 화자줄이 이 수 이상이면 DIALOGUE (조건1)
+_SPEAKER_CONTENT_MIN    = 5     # 발화 내용 최소 단어수
+TWO_SPEAKER_RATIO_MIN   = 0.20  # 2화자 단편 대화 포착용 비율 하한 (조건2)
 
-# ── 패턴 (a): 콜론 포맷 "Sue: I think..." ────────────────────────────────
+# ── 패턴 (a): 콜론 포맷 "Sue: I think..." / "Sue (yes): I think..." ──────
+# 이름과 콜론 사이에 (?:\s*\([^)]*\))* 를 추가해 삽입구(선택지 레이블 등)를 허용.
 _DIALOGUE_PREFIX = re.compile(
-    r"^\s*([A-Z][a-z]{1,19}(?:\s[A-Z][a-z]{1,19})?):\s+(.*)"
+    r"^\s*([A-Z][a-z]{1,19}(?:\s[A-Z][a-z]{1,19})?)(?:\s*\([^)]*\))*:\s+(.*)"
 )
 
 # ── 패턴 (b): 단독줄 포맷 "Henry\n발화내용" ──────────────────────────────
@@ -87,25 +95,25 @@ _HEADING_EXCLUSIONS: frozenset[str] = frozenset(STRUCTURAL_MARKERS | {
 })
 
 
-def _is_speaker_line(line: str) -> tuple[bool, str]:
-    """패턴 (a) 콜론 포맷 — (화자줄 여부, 감지된 줄 원문) 반환."""
+def _is_speaker_line(line: str) -> tuple[bool, str, str]:
+    """패턴 (a) 콜론 포맷 — (화자줄 여부, 화자 first_word, 감지된 줄 원문) 반환."""
     m = _DIALOGUE_PREFIX.match(line)
     if not m:
-        return False, ""
+        return False, "", ""
     name_part   = m.group(1).strip()
     content     = m.group(2)
     first_word  = name_part.split()[0]
 
     if first_word in STRUCTURAL_MARKERS:
-        return False, ""
+        return False, "", ""
     if len(re.findall(r"\w+", content)) < _SPEAKER_CONTENT_MIN:
-        return False, ""
+        return False, "", ""
 
-    return True, line.strip()
+    return True, first_word, line.strip()
 
 
-def _count_heading_speakers(lines: list[str]) -> tuple[int, list[str]]:
-    """패턴 (b) 단독줄 포맷 — (감지 횟수, 예시 문자열 리스트) 반환.
+def _count_heading_speakers(lines: list[str]) -> tuple[int, list[str], set[str]]:
+    """패턴 (b) 단독줄 포맷 — (감지 횟수, 예시 문자열 리스트, 화자명 집합) 반환.
 
     이름만 있는 줄 바로 다음 비공백 줄에 _SPEAKER_CONTENT_MIN 단어 이상이면 감지.
     소제목 반복 체크: 이름(또는 접두 5자)이 다음 줄 본문에 재등장하면 소제목으로 판정해
@@ -113,6 +121,7 @@ def _count_heading_speakers(lines: list[str]) -> tuple[int, list[str]]:
     """
     count = 0
     examples: list[str] = []
+    names: set[str] = set()
     for idx, line in enumerate(lines):
         m = _HEADING_SPEAKER.match(line)
         if not m:
@@ -137,9 +146,10 @@ def _count_heading_speakers(lines: list[str]) -> tuple[int, list[str]]:
         if len(name_l) >= 5 and re.search(r"\b" + re.escape(name_l[:5]), content_l):
             continue
         count += 1
+        names.add(name_l)
         if len(examples) < 2:
             examples.append(f"{name}: {next_content[:60]}")
-    return count, examples
+    return count, examples, names
 
 
 @dataclass
@@ -195,20 +205,31 @@ def classify(text: str, level_key: str) -> ClassificationResult:
     lines = text.splitlines()
     non_empty = sum(1 for l in lines if l.strip())
 
-    # (a) 콜론 포맷
+    # (a) 콜론 포맷 — 화자명도 수집 (2화자 조건 판정용)
     speaker_lines: list[str] = []
+    speaker_names: set[str] = set()
     for line in lines:
-        ok, matched = _is_speaker_line(line)
+        ok, name, matched = _is_speaker_line(line)
         if ok:
             speaker_lines.append(matched)
+            speaker_names.add(name.lower())
 
     # (b) 단독줄 포맷
-    heading_count, heading_examples = _count_heading_speakers(lines)
+    heading_count, heading_examples, heading_names = _count_heading_speakers(lines)
 
+    all_names      = speaker_names | heading_names
     total_speakers = len(speaker_lines) + heading_count
-    ratio = total_speakers / non_empty if non_empty > 0 else 0.0
+    ratio          = total_speakers / non_empty if non_empty > 0 else 0.0
 
-    if total_speakers >= DIALOGUE_THRESHOLD:
+    # 조건1: 기존 (화자줄 3개 이상)
+    # 조건2: 서로 다른 화자 2명 이상 + 화자줄 2개 이상 + 비공백 줄의 20%+
+    is_dialogue = total_speakers >= DIALOGUE_THRESHOLD or (
+        total_speakers >= 2
+        and len(all_names) >= 2
+        and ratio >= TWO_SPEAKER_RATIO_MIN
+    )
+
+    if is_dialogue:
         examples = (speaker_lines[:2] + heading_examples)[:2]
         return ClassificationResult(
             article_type=ArticleType.DIALOGUE,
