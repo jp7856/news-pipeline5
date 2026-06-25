@@ -3,7 +3,9 @@ article_classifier.py — 기사 유형 판별 (BRIEF / DIALOGUE / ARTICLE)
 
 CEFR 난이도 게이트 앞단에서 호출. 유형에 따라 게이트를 건너뛰거나 통과시킨다.
   BRIEF    : 레벨별 단어수 임계값 미만 → CEFR SKIP
-  DIALOGUE : 화자줄("이름: 발화내용") 3회 이상 → CEFR SKIP
+  DIALOGUE : 화자줄 3회 이상 → CEFR SKIP. 두 가지 패턴을 감지:
+               (a) 콜론 포맷   "Sue: I think..."  (같은 줄에 이름+콜론+발화)
+               (b) 단독줄 포맷 "Henry\\n발화내용"  (이름만 한 줄, 다음 줄에 발화)
   ARTICLE  : 나머지 → CEFR 게이트로 진행
 """
 
@@ -54,15 +56,39 @@ STRUCTURAL_MARKERS: frozenset[str] = frozenset({
 })
 
 DIALOGUE_THRESHOLD = 3     # 화자줄이 이 수 이상이면 DIALOGUE
-_SPEAKER_CONTENT_MIN = 5   # 콜론 뒤 내용 단어수 최소값 (프로필 필드 제외용)
+_SPEAKER_CONTENT_MIN = 5   # 발화 내용 최소 단어수
 
+# ── 패턴 (a): 콜론 포맷 "Sue: I think..." ────────────────────────────────
 _DIALOGUE_PREFIX = re.compile(
     r"^\s*([A-Z][a-z]{1,19}(?:\s[A-Z][a-z]{1,19})?):\s+(.*)"
 )
 
+# ── 패턴 (b): 단독줄 포맷 "Henry\n발화내용" ──────────────────────────────
+# 콜론 없이 이름만 한 줄 전체를 차지하고 다음 줄에 발화가 오는 형태.
+# (JUNIOR_L3 Debate 등)
+_HEADING_SPEAKER = re.compile(r"^\s*([A-Z][a-z]{1,19})(?:\s*\([^)]*\))?\s*$")
+
+# 단독줄 패턴 전용 제외 목록 — 소제목·지명 등 인명이 아닌 단어가 false positive를
+# 일으키는 것을 막는다. STRUCTURAL_MARKERS를 포함하고 추가 확장.
+_HEADING_EXCLUSIONS: frozenset[str] = frozenset(STRUCTURAL_MARKERS | {
+    # 지명
+    "Korea", "Japan", "China", "America", "Europe", "Africa", "Asia",
+    "Canada", "India", "Russia", "France", "Germany", "Britain", "England",
+    "Australia", "Brazil", "Mexico", "Spain", "Italy", "Israel",
+    "Iran", "Iraq", "Turkey", "Ukraine", "Singapore", "Thailand",
+    "Seoul", "Tokyo", "Beijing", "London", "Paris", "Berlin",
+    # 기사 소제목으로 쓰이는 주제·섹션 단어
+    "Background", "History", "Introduction", "Analysis", "Overview",
+    "Impact", "Effect", "Cause", "Context", "Solution", "Problem",
+    "Challenge", "Benefit", "Risk", "Update", "Report", "Review",
+    "Science", "Technology", "Culture", "Economy", "Politics",
+    "Education", "Health", "Environment", "Society", "Nature", "Future",
+    "Today", "Recently", "Meanwhile",
+})
+
 
 def _is_speaker_line(line: str) -> tuple[bool, str]:
-    """(화자줄 여부, 감지된 줄 원문) 반환."""
+    """패턴 (a) 콜론 포맷 — (화자줄 여부, 감지된 줄 원문) 반환."""
     m = _DIALOGUE_PREFIX.match(line)
     if not m:
         return False, ""
@@ -70,15 +96,40 @@ def _is_speaker_line(line: str) -> tuple[bool, str]:
     content     = m.group(2)
     first_word  = name_part.split()[0]
 
-    # 구조 마커 제외
     if first_word in STRUCTURAL_MARKERS:
         return False, ""
-
-    # 발화 내용 최소 단어수 (프로필 필드 "Height: 185 cm" 등 제외)
     if len(re.findall(r"\w+", content)) < _SPEAKER_CONTENT_MIN:
         return False, ""
 
     return True, line.strip()
+
+
+def _count_heading_speakers(lines: list[str]) -> tuple[int, list[str]]:
+    """패턴 (b) 단독줄 포맷 — (감지 횟수, 예시 문자열 리스트) 반환.
+
+    이름만 있는 줄 바로 다음 비공백 줄에 _SPEAKER_CONTENT_MIN 단어 이상이면 감지.
+    """
+    count = 0
+    examples: list[str] = []
+    for idx, line in enumerate(lines):
+        m = _HEADING_SPEAKER.match(line)
+        if not m:
+            continue
+        name = m.group(1)
+        if name in _HEADING_EXCLUSIONS:
+            continue
+        # 다음 비공백 줄 찾기 (최대 2줄 안)
+        next_content = ""
+        for j in range(idx + 1, min(idx + 3, len(lines))):
+            stripped = lines[j].strip()
+            if stripped:
+                next_content = stripped
+                break
+        if len(re.findall(r"\w+", next_content)) >= _SPEAKER_CONTENT_MIN:
+            count += 1
+            if len(examples) < 2:
+                examples.append(f"{name}: {next_content[:60]}")
+    return count, examples
 
 
 @dataclass
@@ -133,21 +184,28 @@ def classify(text: str, level_key: str) -> ClassificationResult:
     # ── 2. 대화체 판정 ─────────────────────────────────────────────────────
     lines = text.splitlines()
     non_empty = sum(1 for l in lines if l.strip())
+
+    # (a) 콜론 포맷
     speaker_lines: list[str] = []
     for line in lines:
         ok, matched = _is_speaker_line(line)
         if ok:
             speaker_lines.append(matched)
 
-    ratio = len(speaker_lines) / non_empty if non_empty > 0 else 0.0
+    # (b) 단독줄 포맷
+    heading_count, heading_examples = _count_heading_speakers(lines)
 
-    if len(speaker_lines) >= DIALOGUE_THRESHOLD:
+    total_speakers = len(speaker_lines) + heading_count
+    ratio = total_speakers / non_empty if non_empty > 0 else 0.0
+
+    if total_speakers >= DIALOGUE_THRESHOLD:
+        examples = (speaker_lines[:2] + heading_examples)[:2]
         return ClassificationResult(
             article_type=ArticleType.DIALOGUE,
             word_count=wc,
-            dialogue_line_count=len(speaker_lines),
+            dialogue_line_count=total_speakers,
             dialogue_line_ratio=ratio,
-            dialogue_examples=speaker_lines[:2],
+            dialogue_examples=examples,
             skip_cefr=True,
         )
 
@@ -155,7 +213,7 @@ def classify(text: str, level_key: str) -> ClassificationResult:
     return ClassificationResult(
         article_type=ArticleType.ARTICLE,
         word_count=wc,
-        dialogue_line_count=len(speaker_lines),  # 0 or 1~2 (임계값 미달)
+        dialogue_line_count=total_speakers,
         dialogue_line_ratio=ratio,
         skip_cefr=False,
     )
