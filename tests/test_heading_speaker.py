@@ -22,6 +22,7 @@ XLSX_PATH = r"C:\Users\jp\Desktop\기사\articles.xlsx"
 EXCLUDE_SECTIONS = {
     "Photo News", "Briefs", "Star Brief", "News in Brief",
     "Cartoon", "Did You Know", "Did You Know?", "Debating", "Cover", "Q & A",
+    "NE You",
 }
 MIN_WC_BY_SHEET = {
     "KINDER": 0, "KIDS": 50, "JUNIOR": 80, "JUNIOR M": 100, "TIMES": 100,

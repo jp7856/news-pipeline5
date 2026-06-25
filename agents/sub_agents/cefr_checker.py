@@ -37,9 +37,9 @@ except ImportError:
 #   KIDS_L1     16     7.0    11.0     19       3       7.5
 #   KIDS_L2     40     7.0    12.0     25       3       9.0
 #   KIDS_L3     16     7.5    12.5     25       3       8.5
-#   JUNIOR_L1   40     8.5    14.5     25       4       9.0
-#   JUNIOR_L2   24    12.0    16.5     34       4      10.5
-#   JUNIOR_L3   16     9.0    17.5     27       4      11.5
+#   JUNIOR_L1   40    10.5    14.5     25       4       9.0  ← NE You 제외 기준 (비-NE p10)
+#   JUNIOR_L2   24    10.5    16.5     34       4      10.5  ← 경계 샘플(10.8~12.0) 99건 수용
+#   JUNIOR_L3   16    11.5    17.5     27       4      11.5  ← World Tour 경계 기준 (p10)
 #   JUNIORM_L1  69    11.0    17.0     31       4      10.0
 #   JUNIORM_L2  19    12.0    15.0     33       4      10.0
 #   TIMES_L1    56    10.5    19.0     32       4      12.5  ← 10.5: articles.xlsx 실측 조정 (avg 9~10은 JUNIOR급)
@@ -65,9 +65,9 @@ LEVELS: dict[str, LevelSpec] = {
     "KIDS_L1":   LevelSpec("KIDS L1",    7.0, 11.0, 19, 3,  7.5),
     "KIDS_L2":   LevelSpec("KIDS L2",    7.0, 12.0, 25, 3,  9.0),
     "KIDS_L3":   LevelSpec("KIDS L3",    7.5, 12.5, 25, 3,  8.5),
-    "JUNIOR_L1": LevelSpec("JUNIOR L1",  8.5, 14.5, 25, 4,  9.0),
-    "JUNIOR_L2": LevelSpec("JUNIOR L2", 12.0, 16.5, 34, 4, 10.5),
-    "JUNIOR_L3": LevelSpec("JUNIOR L3",  9.0, 17.5, 27, 4, 11.5),
+    "JUNIOR_L1": LevelSpec("JUNIOR L1", 10.5, 14.5, 25, 4,  9.0),
+    "JUNIOR_L2": LevelSpec("JUNIOR L2", 10.5, 16.5, 34, 4, 10.5),
+    "JUNIOR_L3": LevelSpec("JUNIOR L3", 11.5, 17.5, 27, 4, 11.5),
     "JUNIORM_L1":LevelSpec("JUNIOR M L1",11.0,17.0, 31, 4, 10.0),
     "JUNIORM_L2":LevelSpec("JUNIOR M L2",12.0,15.0, 33, 4, 10.0),
     "TIMES_L1":  LevelSpec("TIMES L1",  10.5, 19.0, 32, 4, 12.5),
