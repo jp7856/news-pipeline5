@@ -127,10 +127,18 @@ class ReviewerAgent:
         # → _fix_rejected가 이 사유로 기사를 재작성한다(최대 2회).
         from agents.level_agents import cefr_key_for
         from agents.sub_agents.cefr_checker import validate as cefr_validate
+        from agents.sub_agents.article_classifier import classify as classify_article
         cefr_key = cefr_key_for(pkg.level, pkg.sub_level)
         if cefr_key is None:
             self._log(f"[Agent5] CEFR 검증 건너뜀 — {pkg.level.value} {pkg.sub_level} 임계값 미설정")
-        cefr_result = cefr_validate(article.text, cefr_key) if cefr_key else None
+            cefr_result = None
+        else:
+            art_cls = classify_article(article.text, cefr_key)
+            if art_cls.skip_cefr:
+                self._log(art_cls.build_log("Agent5"))
+                cefr_result = None
+            else:
+                cefr_result = cefr_validate(article.text, cefr_key)
 
         if not wc_in_range:
             approved = False

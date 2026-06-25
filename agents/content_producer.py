@@ -60,6 +60,7 @@ class ContentProducerAgent:
     ):
         self._log = log_callback or (lambda msg: logger.info(msg))
         self._cancel_check = cancel_check or (lambda: None)
+        self._skip_stats: dict[str, int] = {"BRIEF": 0, "DIALOGUE": 0}
         from agents.sub_agents.usage_tracker import TrackedClient
         self._client = TrackedClient(api_key=ANTHROPIC_API_KEY)
         self._guidelines = self._load_guidelines()
@@ -122,6 +123,7 @@ class ContentProducerAgent:
         # 목표 범위는 config가 단일 기준 (Writer·검수와 동일 소스).
         from agents.level_agents import cefr_key_for
         from agents.sub_agents.cefr_checker import validate as cefr_validate, build_feedback as cefr_feedback
+        from agents.sub_agents.article_classifier import classify as classify_article
         _cfg, _ = self._writer._merge_config(level, sub_level)
         wc_range = _cfg.get("word_count_range", "")
         sl_range = _cfg.get("sentence_length", "")
@@ -136,8 +138,18 @@ class ContentProducerAgent:
             wc_ok = self._writer._word_count_in_range(article.word_count, wc_range)
             avg_sl = self._writer._avg_sentence_length(article.text)
             sl_ok = self._writer._sentence_length_in_range(avg_sl, sl_range)
-            cefr_result = cefr_validate(article.text, cefr_key) if cefr_key else None
-            cefr_ok = cefr_result.passed if cefr_result is not None else True
+            art_cls = classify_article(article.text, cefr_key) if cefr_key else None
+            if art_cls and art_cls.skip_cefr:
+                log_msg = art_cls.build_log(self.AGENT_LABEL)
+                if log_msg:
+                    self._log(log_msg)
+                self._skip_stats[art_cls.article_type.value] = \
+                    self._skip_stats.get(art_cls.article_type.value, 0) + 1
+                cefr_result = None
+                cefr_ok = True
+            else:
+                cefr_result = cefr_validate(article.text, cefr_key) if cefr_key else None
+                cefr_ok = cefr_result.passed if cefr_result is not None else True
             if plagiarism_report.passed and wc_ok and sl_ok and cefr_ok:
                 break
             attempt += 1
@@ -297,6 +309,10 @@ class ContentProducerAgent:
             crossword_sentences=crossword_sentences,
             workbook_sets=workbook_sets,
         )
+
+    def get_skip_stats(self) -> dict[str, int]:
+        """이 인스턴스가 CEFR 게이트를 건너뛴 횟수 반환 (BRIEF / DIALOGUE 키)."""
+        return dict(self._skip_stats)
 
     @staticmethod
     def _sl_over(avg: float, range_str: str) -> bool:

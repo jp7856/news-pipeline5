@@ -4,6 +4,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 
 import openpyxl
 from agents.sub_agents.cefr_checker import validate, LEVELS
+from agents.sub_agents.article_classifier import classify
 
 XLSX_PATH = r"C:\Users\jp\Desktop\기사\articles.xlsx"
 PREFIX = {"KINDER":"KINDER","KIDS":"KIDS","JUNIOR":"JUNIOR","TIMES":"TIMES","JUNIOR M":"JUNIORM"}
@@ -37,7 +38,7 @@ def pct(xs, p):
 wb = openpyxl.load_workbook(XLSX_PATH, read_only=True, data_only=True)
 
 all_buckets: dict[str, list] = {}
-skip_counts: dict[str, int]  = {}
+skip_counts: dict[str, dict[str, int]] = {}   # key → {BRIEF: n, DIALOGUE: n}
 
 for sheet_name in ["KINDER", "KIDS", "JUNIOR", "TIMES", "JUNIOR M"]:
     ws   = wb[sheet_name]
@@ -61,6 +62,11 @@ for sheet_name in ["KINDER", "KIDS", "JUNIOR", "TIMES", "JUNIOR M"]:
         if not num: continue
         key = f"{PREFIX[sheet_name]}_L{num.group()}"
         if key not in LEVELS: continue
+        art_cls = classify(txt, key)
+        if art_cls.skip_cefr:
+            bucket = skip_counts.setdefault(key, {})
+            bucket[art_cls.article_type.value] = bucket.get(art_cls.article_type.value, 0) + 1
+            continue
         all_buckets.setdefault(key, []).append(validate(txt, key))
 
 # ── 결과 출력 ─────────────────────────────────────────────────────────
@@ -97,3 +103,13 @@ for key in sorted(all_buckets):
     new  = max(1.0, round(p10 * 2) / 2)
     flag = f"{cur:.1f} → {new:.1f}" if abs(cur - new) >= 0.5 else "—"
     print(f"{key:<14}  {p10:>7.1f}  {cur:>11.1f}  {new:>14.1f}  {flag:>10}")
+
+# ── 분류기 제외 건수 ──────────────────────────────────────────────────────
+if skip_counts:
+    print()
+    print(f"{'레벨키':<14}  {'BRIEF':>6}  {'DIALOGUE':>9}  {'소계':>6}")
+    print("─" * 42)
+    for key in sorted(skip_counts):
+        b = skip_counts[key].get("BRIEF", 0)
+        d = skip_counts[key].get("DIALOGUE", 0)
+        print(f"{key:<14}  {b:>6}건  {d:>8}건  {b+d:>5}건")
