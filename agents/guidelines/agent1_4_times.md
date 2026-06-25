@@ -4,8 +4,10 @@
 근거: 2026-06 basic.xlsx 전수 분석 (TIMES 산문 108건: L1 48 / L2 40 / L3 20, 각주·한글 뜻풀이 제외).
 수치 사양(단어 수·문장 길이·문단·CEFR)은 config.py가 단일 기준 — 이 파일엔 문체 규칙만 둔다 (드리프트 방지).
 실측 산문 섹션: Nation / World / Briefs (L1), Headlines News / Key Issue / Lifestyle /
-Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사·VoA (L3)
-비산문 포맷(생성 대상 아님): Photo News, Debating
+Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사 (L3)
+비산문 포맷(생성 대상 아님): Photo News, Debating,
+  VoA Broadcast News (외부 방송 스크립트 — 생성·검증 대상 아님),
+  My Journal / Book Review / Stories / Story / Readings for Junior (독자 기고·창작·보충읽기)
 참고: 실측 L1에는 60~80단어 '단신(Briefs)'도 있으나 생성 기본형에서 제외(매체 변별 위해) —
   생성 L1 = 110~150단어 압축 뉴스. L2/L3는 260단어 이상 본격 기사.
 이 매체의 위치: 5개 매체 중 가장 높음(고등). 아래(JUNIOR M)와의 변별 = 격식 신문체·통계/수치·
