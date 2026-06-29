@@ -129,8 +129,13 @@ _SENT_SPLIT = re.compile(r'(?<=[.!?])\s+')
 _TOKEN = re.compile(r'[A-Za-z]+')
 
 
-def measure(text: str) -> VocabResult:
-    """기사 본문 C1+ 어휘 비율 측정. 차단 없음 — 측정값만 반환."""
+def measure(text: str, dedup_types: bool = False) -> VocabResult:
+    """기사 본문 C1+ 어휘 비율 측정. 차단 없음 — 측정값만 반환.
+
+    dedup_types=True: 동일 소문자 토큰은 기사 내 1회만 집계.
+    토픽 전문어(cicada, pastry 등) 반복으로 인한 비율 부풀림을 제거한다.
+    분자(C1/C2)와 분모(total) 모두 동일 규칙 적용.
+    """
 
     # NOT 단어 raw 카운트 (lemmatize 없이 원문 패턴 매칭)
     not_hits = {
@@ -144,6 +149,7 @@ def measure(text: str) -> VocabResult:
     c2 = 0
     domain_excl = 0
     proper_excl = 0
+    seen: set[str] = set()
 
     for sent in _SENT_SPLIT.split(text.strip()):
         tokens = _TOKEN.findall(sent)
@@ -156,7 +162,7 @@ def measure(text: str) -> VocabResult:
 
             w = raw.lower()
 
-            # 1~2자 스킵 (a, an, in, to, be 등 — 레벨 분석 무의미)
+            # 1~2자 스킵
             if len(w) <= 2:
                 continue
 
@@ -164,6 +170,12 @@ def measure(text: str) -> VocabResult:
             if w in DOMAIN_TERMS:
                 domain_excl += 1
                 continue
+
+            # dedup: 이미 집계한 토큰이면 스킵 (분자·분모 모두)
+            if dedup_types:
+                if w in seen:
+                    continue
+                seen.add(w)
 
             lv = get_cefr(w)
             if lv is None:
