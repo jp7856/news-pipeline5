@@ -26,6 +26,7 @@ EXCLUDE_SECTIONS = {
     "VoA Broadcast News",
     "Think About It",   # KINDER 토론/의견나열 포맷
     "My Diary",         # KINDER 1인칭 일기체
+    "Debate",           # JUNIOR L3 토론 에세이 — avg_p50=9.7, 게이트 대상 아님
     # Speak Out: 섹션 단위 제외 금지 — classifier DIALOGUE 판정만 제외
 }
 

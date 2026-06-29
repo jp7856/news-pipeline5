@@ -78,6 +78,26 @@ _HEADING_SPEAKER = re.compile(r"^\s*([A-Z][a-z]{1,19})(?:\s*\([^)]*\))?\s*$")
 
 # 단독줄 패턴 전용 제외 목록 — 소제목·지명 등 인명이 아닌 단어가 false positive를
 # 일으키는 것을 막는다. STRUCTURAL_MARKERS를 포함하고 추가 확장.
+# ── 지리 정형 패턴: "[국가] is a/an ... country/city-state ... located in ..." ─────
+# World Tour 등 정형 국가소개 포맷 감지 — 게이트 면제(BRIEF 처리)
+# 섹션 내 일반기사(인물 등)는 이 패턴에 걸리지 않아 ARTICLE 유지
+_GEO_OPENING = re.compile(
+    r"^(?:The\s+)?\w+(?:\s+\w+){0,3}"                              # 국가명 최대 4단어
+    r"\s+is\s+(?:a|an)\s+[\w\s,]*"                                 # "is a/an [형용사*]"
+    r"(?:country|city[\s\-]state|island\s+(?:country|nation)"
+    r"|archipelago|nation|republic|kingdom|principality|territory)"
+    r"[\w\s,]*(?:located|situated)\s+in\b",                        # "located/situated in"
+    re.IGNORECASE,
+)
+_GEO_MARKERS = re.compile(
+    r"\b(?:capital(?:\s+city)?|official\s+language|population"
+    r"|currency|covers?\s+an?\s+area|area\s+of|bordered\s+by"
+    r"|neighboring\s+(?:country|countries|nations?))\b",
+    re.IGNORECASE,
+)
+_GEO_MARKER_MIN = 1   # 지리 마커 최소 1개 (capital/population/area/language 등 중 하나)
+_FIRST_SENT_END = re.compile(r"[.!?]")
+
 _HEADING_EXCLUSIONS: frozenset[str] = frozenset(STRUCTURAL_MARKERS | {
     # 지명
     "Korea", "Japan", "China", "America", "Europe", "Africa", "Asia",
@@ -162,10 +182,16 @@ class ClassificationResult:
     dialogue_examples: list[str] = field(default_factory=list)
     skip_cefr: bool = False
     brief_threshold: int = 0
+    geo_template: bool = False          # 지리 정형 패턴 감지 여부 (World Tour 등)
 
     def build_log(self, agent_label: str) -> str:
         """self._log()에 넘길 메시지 반환. ARTICLE이면 빈 문자열."""
         if self.article_type == ArticleType.BRIEF:
+            if self.geo_template:
+                return (
+                    f"[{agent_label}] 유형=BRIEF(지리정형) — {self.word_count}단어 "
+                    f"국가소개 정형 패턴 감지 → CEFR 게이트 SKIP"
+                )
             return (
                 f"[{agent_label}] 유형=BRIEF — {self.word_count}단어 "
                 f"(임계값 {self.brief_threshold} 미만) "
@@ -199,6 +225,20 @@ def classify(text: str, level_key: str) -> ClassificationResult:
             word_count=wc,
             skip_cefr=True,
             brief_threshold=threshold,
+        )
+
+    # ── 1.5. 지리 정형 판정 ──────────────────────────────────────────────────
+    # "[국가] is a/an ... country/city-state ... located in ..." + 수도/면적 등 2개 이상
+    # 섹션 전체 EXCLUDE 없이 정형 포맷만 선별적으로 게이트 면제
+    _fsm = _FIRST_SENT_END.search(text[:400])
+    _first_sent = text[:_fsm.start()].strip() if _fsm else text[:250].strip()
+    if _GEO_OPENING.match(_first_sent) and len(_GEO_MARKERS.findall(text)) >= _GEO_MARKER_MIN:
+        return ClassificationResult(
+            article_type=ArticleType.BRIEF,
+            word_count=wc,
+            skip_cefr=True,
+            brief_threshold=threshold,
+            geo_template=True,
         )
 
     # ── 2. 대화체 판정 ─────────────────────────────────────────────────────
