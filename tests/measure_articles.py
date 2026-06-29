@@ -43,6 +43,9 @@ def pct(xs, p):
     s = sorted(xs)
     return s[min(int(len(s)*p/100), len(s)-1)]
 
+_YEAR_RE  = re.compile(r'\b(20\d{2})\b')
+YEAR_CUTOFF = 2024
+
 wb = openpyxl.load_workbook(XLSX_PATH, read_only=True, data_only=True)
 
 all_buckets: dict[str, list] = {}
@@ -55,6 +58,7 @@ for sheet_name in ["KINDER", "KIDS", "JUNIOR", "TIMES", "JUNIOR M"]:
     lv_col  = next((i for i,h in enumerate(hdr) if "레벨" in h or "level" in h.lower()), None)
     tx_col  = next((i for i,h in enumerate(hdr) if "본문" in h or "text" in h.lower()), None)
     sec_col = next((i for i,h in enumerate(hdr) if "섹션" in h or "section" in h.lower()), None)
+    dt_col  = next((i for i,h in enumerate(hdr) if "날짜" in h or "date"    in h.lower()), None)
     if lv_col is None or tx_col is None: continue
 
     for row in rows[1:]:
@@ -69,6 +73,12 @@ for sheet_name in ["KINDER", "KIDS", "JUNIOR", "TIMES", "JUNIOR M"]:
         num = re.search(r"\d+", lv)
         if not num: continue
         if int(num.group()) == 0: continue                # KIDS L0 = 2010~2012 아카이브, 현행 아님
+        yr = None
+        if dt_col is not None and len(row) > dt_col and row[dt_col]:
+            ym = _YEAR_RE.search(str(row[dt_col]))
+            if ym: yr = int(ym.group())
+        if yr is not None and yr < YEAR_CUTOFF:
+            continue                                       # 아카이브 제외 (2024~ 현행 기준)
         key = f"{PREFIX[sheet_name]}_L{num.group()}"
         if key not in LEVELS: continue
         art_cls = classify(txt, key)

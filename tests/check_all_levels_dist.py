@@ -31,6 +31,9 @@ SHEET_CFG: dict[str, tuple[str, int]] = {
     "TIMES":    ("TIMES",  100),
 }
 
+_YEAR_RE  = re.compile(r'\b(20\d{2})\b')
+YEAR_CUTOFF = 2024
+
 def pct(xs: list[float], p: int) -> float:
     s = sorted(xs)
     return s[min(int(len(s) * p / 100), len(s) - 1)]
@@ -47,6 +50,7 @@ for sheet_name, (prefix, min_wc) in SHEET_CFG.items():
     lv_col  = next((i for i,h in enumerate(hdr) if "레벨" in h or "level"   in h.lower()), None)
     tx_col  = next((i for i,h in enumerate(hdr) if "본문" in h or "text"    in h.lower()), None)
     sc_col  = next((i for i,h in enumerate(hdr) if "섹션" in h or "section" in h.lower()), None)
+    dt_col  = next((i for i,h in enumerate(hdr) if "날짜" in h or "date"    in h.lower()), None)
     if lv_col is None or tx_col is None:
         continue
 
@@ -70,6 +74,12 @@ for sheet_name, (prefix, min_wc) in SHEET_CFG.items():
             continue
         if int(m.group()) == 0:
             continue                                      # KIDS L0 = 2010~2012 아카이브, 현행 아님
+        yr = None
+        if dt_col is not None and len(row) > dt_col and row[dt_col]:
+            ym = _YEAR_RE.search(str(row[dt_col]))
+            if ym: yr = int(ym.group())
+        if yr is not None and yr < YEAR_CUTOFF:
+            continue                                      # 아카이브 제외 (2024~ 현행 기준)
         key = f"{prefix}_L{m.group()}"
         if key not in LEVELS:
             continue

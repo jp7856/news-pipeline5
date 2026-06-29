@@ -44,7 +44,7 @@ except ImportError:
 #   JUNIORM_L2  19    10.1    15.0     33       4      10.0  ← p10 기준
 #   TIMES_L1    56    10.5    19.0     32       4      12.5  ← 10.5: articles.xlsx 실측 조정 (avg 9~10은 JUNIOR급)
 #   TIMES_L2    48    13.5    19.5     31       5      13.0  ← 14.5→13.5 (articles.xlsx 경계 샘플 검토)
-#   TIMES_L3    20    15.5    19.0     48       6      14.0
+#   TIMES_L3    20    14.0    19.0     48       6      14.0   ← articles.xlsx 보정 (2026-06, 현행 2024~ p10 기준)
 # --------------------------------------------------------------------------
 @dataclass
 class LevelSpec:
@@ -72,7 +72,7 @@ LEVELS: dict[str, LevelSpec] = {
     "JUNIORM_L2":LevelSpec("JUNIOR M L2",10.1,15.0, 33, 4, 10.0),
     "TIMES_L1":  LevelSpec("TIMES L1",  10.5, 19.0, 32, 4, 12.5),
     "TIMES_L2":  LevelSpec("TIMES L2",  13.5, 19.5, 31, 5, 13.0),  # ← 14.5→13.5: 경계 샘플 확인 후 조정 (L1 중앙값 12.5 이상만 통과)
-    "TIMES_L3":  LevelSpec("TIMES L3",  15.5, 19.0, 48, 6, 14.0),
+    "TIMES_L3":  LevelSpec("TIMES L3",  14.0, 19.0, 48, 6, 14.0),
 }
 
 
