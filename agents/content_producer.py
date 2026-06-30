@@ -191,11 +191,18 @@ class ContentProducerAgent:
                     f"— 재작성 {attempt}/{max_retries}회"
                 )
                 direction = "shorter, simpler sentences" if avg_sl > 0 and self._sl_over(avg_sl, sl_range) else "slightly longer, fuller sentences"
+                try:
+                    _lo, _hi = (float(x) for x in sl_range.split("-"))
+                    _mid = (_lo + _hi) / 2
+                    _mid_hint = f"around {_mid:.0f} words per sentence (the midpoint of {sl_range})"
+                except Exception:
+                    _mid_hint = f"the middle of the {sl_range} range"
                 notes.append(
                     f"The article's AVERAGE sentence length is {avg_sl:.1f} words, which is OUTSIDE "
                     f"the required range of {sl_range}. Rewrite using {direction} so the average "
-                    f"falls WITHIN {sl_range} — this controls the reading difficulty (CEFR). "
-                    f"Keep the facts, word count target, and fully original wording."
+                    f"falls WITHIN {sl_range} — aim for {_mid_hint}. "
+                    f"Also keep the word count within {wc_range} words. "
+                    f"Keep the facts and fully original wording."
                 )
             if cefr_result and not cefr_result.passed:
                 self._log(
