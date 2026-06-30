@@ -14,3 +14,7 @@ lxml>=5.0.0
 # Google Sheets
 gspread>=6.0.0
 google-auth>=2.0.0
+
+# 텍스트 분석
+textstat==0.7.13          # cefr_checker FK 임계값 이 버전 기준 캘리브레이션
+# cefrpy>=1.0.0           # vocab_monitor 연결 시 필요
