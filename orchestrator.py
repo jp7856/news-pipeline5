@@ -112,7 +112,8 @@ class Orchestrator:
 
         self._check_cancel()
         package = producer.produce_extras(
-            topic, level, section, state["article"], state["plagiarism_report"]
+            topic, level, section, state["article"], state["plagiarism_report"],
+            sub_level=state.get("sub_level", "L2"),
         )
         package.sub_level = state.get("sub_level", "L2")
 

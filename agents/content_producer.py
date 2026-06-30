@@ -265,21 +265,37 @@ class ContentProducerAgent:
         return article, plagiarism_report
 
     def produce_extras(
-        self, topic: str, level: Level, section: Section, article, plagiarism_report
+        self, topic: str, level: Level, section: Section, article, plagiarism_report,
+        sub_level: str = "L2",
     ) -> ContentPackage:
         """Phase 2 — 교정 + 크로스워드 + 워크북을 수행하고 패키지를 완성한다."""
         # ── Step 3: 교정 ──────────────────────────────────────────
         editing_suggestions = self._editor.run(article, level)
 
-        # 교정 제안을 본문에 자동 반영 (원문 구절이 그대로 존재할 때만)
-        applied = 0
+        # 교정 제안을 본문에 자동 반영 — wc 범위를 이탈시키는 교정은 건너뜀
+        _cfg, _ = WriterAgent._merge_config(level, sub_level)
+        _wc_range = _cfg.get("word_count_range", "")
+        applied = skipped = 0
         for s in editing_suggestions:
-            if s.original and s.original in article.text:
-                article.text = article.text.replace(s.original, s.suggestion, 1)
-                applied += 1
-        if applied:
+            if not (s.original and s.original in article.text):
+                continue
+            patched = article.text.replace(s.original, s.suggestion, 1)
+            new_wc = len(patched.split())
+            if _wc_range and not WriterAgent._word_count_in_range(new_wc, _wc_range):
+                self._log(
+                    f"[{self.AGENT_LABEL}] 교정 건너뜀 — 반영 시 {new_wc}단어로 "
+                    f"범위({_wc_range}) 이탈"
+                )
+                skipped += 1
+                continue
+            article.text = patched
+            applied += 1
+        if applied or skipped:
             article.word_count = len(article.text.split())
-            self._log(f"[{self.AGENT_LABEL}] 교정 {applied}건 본문 반영 완료")
+            msg = f"[{self.AGENT_LABEL}] 교정 {applied}건 본문 반영"
+            if skipped:
+                msg += f" ({skipped}건 wc 범위 보호로 건너뜀)"
+            self._log(msg)
 
         # ── Step 4 & 5: 크로스워드 + 워크북 (병렬 실행 — 서로 독립적) ──
         self._cancel_check()
