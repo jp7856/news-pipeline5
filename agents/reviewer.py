@@ -110,15 +110,36 @@ class ReviewerAgent:
 
         message = self._client.messages.create(
             model=CLAUDE_MODEL,
-            max_tokens=256,
+            max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
+        if message.stop_reason == "max_tokens":
+            self._log("[Agent5] 응답이 토큰 한도에서 잘렸습니다 — 재요청")
+            message = self._client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=512,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            if message.stop_reason == "max_tokens":
+                raise ValueError("검수 응답이 두 번 연속 잘렸습니다 — 검수불능 처리")
 
         raw = message.content[0].text.strip()
         if "```" in raw:
             raw = raw.split("```")[1].lstrip("json").strip()
 
-        data = json.loads(raw)
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            self._log("[Agent5] JSON 파싱 실패 — 재요청")
+            message = self._client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=512,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            raw = message.content[0].text.strip()
+            if "```" in raw:
+                raw = raw.split("```")[1].lstrip("json").strip()
+            data = json.loads(raw)  # 재실패 시 예외를 올려 검수오류 처리
         approved = data.get("approved", False)
         reason = data.get("reason", "")
         fix_targets = [t for t in data.get("fix_targets", []) if t in self.FIX_TARGETS]
