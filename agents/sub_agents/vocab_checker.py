@@ -1,5 +1,23 @@
 """
-vocab_checker.py — C1+ 어휘 비율 측정기 (기록·경고용, 차단 없음)
+vocab_checker.py — C1+ 및 C2VA 어휘 비율 측정 (분석·참고용)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[상태] 비율 지표(C1+, C2VA) 모두 게이트로 부적합 — 폐기.
+  - C1+: 토픽 전문어(cicada, robot, drone)가 C1/C2로 잡혀 비율을 부풀림.
+         실증: 로봇 기사 C1+ 96.4th pctile > CCTV 드리프트 기사 94.6th pctile.
+  - C2VA(C2 동사+부사): "토픽어는 명사에 몰린다" 전제가 동사에서도 깨짐.
+         실증: 매미 4.83% > CCTV 4.76%. broods/decompose/sap/shudder 같은
+         생물학적 감각 동사가 법적·분석적 동사(loitering/trespassing/preemptively)와
+         수치상 구분 불가. C2VA ≥ 4.76%인 기사 19건 중 대다수가 토픽 노이즈.
+  → 함수(measure, measure_dual 등)는 분포 분석·참고용으로 유지하되 게이트에 쓰지 말 것.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[다음 방향] 진짜 구분선은 비율이 아니라 단어 정체성.
+  - 토픽어(broods, cacao, pastry): 주제에 종속된 단어 — 주제가 바뀌면 사라짐.
+  - 분석어(proliferation, contend, conducted): 주제 무관, 논증·서술 구조에서 나오는 단어.
+  다음 작업: guidelines NOT 예시(proponents, deterring, incorporating, measurable,
+  proliferation, advocates, contend, conducted)를 씨앗으로 한 분석어 사전 구축 +
+  기사 내 출현 카운트. 비율 지표로 되돌아가지 말 것.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Words-CEFR-Dataset (MIT, cefrpy) 기반.
 레마타이제이션 적용, 고유명사(문장 중간 대문자 시작) 및 1~2자 단어 제외.
