@@ -70,6 +70,13 @@ class WriterAgent:
                 f"Each reference is numbered. SOME MAY NOT actually be about this topic:\n{lines}"
             )
 
+        _vocab_guardrails = self._extract_vocab_guardrails(guidelines)
+        _vocab_instruction = (
+            f"6. VOCABULARY — follow this newspaper's level strictly:\n{_vocab_guardrails}"
+            if _vocab_guardrails
+            else "6. Include relevant vocabulary naturally in the text."
+        )
+
         prompt = f"""You are writing an article for {cfg['newspaper']}.
 {source_hint}{real_source_hint}
 
@@ -101,7 +108,7 @@ Instructions:
    Stay politically neutral and balanced — never take sides on partisan issues.
    No sensational, violent, sexual, or fear-mongering content or framing.
 5. Write an article suitable for the readers' age and comprehension level.
-6. Include relevant vocabulary naturally in the text.
+{_vocab_instruction}
 7. Add one or two points that spark curiosity or deeper interest.
 8. Include background explanations where needed for younger readers.
 9. Write in a tone and style appropriate to {cfg['newspaper']}.
@@ -242,6 +249,24 @@ CRITICAL JSON RULES:
             f"(follow these strictly — they take priority over general instructions below):\n"
             f"{guidelines}"
         )
+
+    @staticmethod
+    def _extract_vocab_guardrails(guidelines: str) -> str:
+        """guidelines에서 'Vocabulary guardrail(s)' 섹션을 추출한다.
+        'Sub-level differences:' 직전까지 반환 — 5개 .md 파일 공통 구조.
+        """
+        if not guidelines:
+            return ""
+        m = re.search(
+            r'^[ \t]*-?[ \t]*Vocabulary guardrail',
+            guidelines, re.IGNORECASE | re.MULTILINE
+        )
+        if not m:
+            return ""
+        start = m.start()
+        end_m = re.search(r'\nSub-level differences', guidelines[start:], re.IGNORECASE)
+        end = start + end_m.start() if end_m else len(guidelines)
+        return guidelines[start:end].strip()
 
     def _call_claude(self, prompt: str, guidelines: str = "") -> dict:
         system_blocks = [
