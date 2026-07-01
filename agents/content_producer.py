@@ -193,8 +193,8 @@ class ContentProducerAgent:
                 direction = "shorter, simpler sentences" if avg_sl > 0 and self._sl_over(avg_sl, sl_range) else "slightly longer, fuller sentences"
                 try:
                     _lo, _hi = (float(x) for x in sl_range.split("-"))
-                    _mid = (_lo + _hi) / 2
-                    _mid_hint = f"around {_mid:.0f} words per sentence (the midpoint of {sl_range})"
+                    _mid = _lo + (_hi - _lo) * 0.4
+                    _mid_hint = f"around {_mid:.0f} words per sentence (lower half of {sl_range})"
                 except Exception:
                     _mid_hint = f"the middle of the {sl_range} range"
                 notes.append(
