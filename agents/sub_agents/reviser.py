@@ -9,7 +9,7 @@ import logging
 import re
 from typing import Callable
 
-from config import ANTHROPIC_API_KEY, CLAUDE_MODEL, SYSTEM_PROMPT, LEVEL_CONFIG
+from config import ANTHROPIC_API_KEY, CLAUDE_MODEL, SYSTEM_PROMPT, LEVEL_CONFIG, SUBLEVEL_CONFIG
 from models import ArticleResult, Level, PlagiarismReport
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ class ReviserAgent:
         level: Level,
         plagiarism_report: PlagiarismReport | None = None,
         history: list[dict] | None = None,
+        sub_level: str = "",
     ) -> tuple[ArticleResult, str, bool]:
         """에디터 입력을 처리한다.
 
@@ -37,6 +38,9 @@ class ReviserAgent:
         """
         self._log(f"[Reviser] 입력 — \"{instruction[:60]}\"")
         cfg = LEVEL_CONFIG[level.value]
+        sub_cfg = SUBLEVEL_CONFIG.get(level.value, {}).get(sub_level, {}) if sub_level else {}
+        wc_range = sub_cfg.get("word_count_range") or cfg["word_count_range"]
+        sl_range = sub_cfg.get("sentence_length", "")
 
         plag_context = ""
         if plagiarism_report is not None:
@@ -58,9 +62,14 @@ class ReviserAgent:
                 lines.append(f"AI: {h['assistant']}")
             history_text = "\n\n[이전 대화]\n" + "\n".join(lines)
 
+        sl_spec = f", average sentence length {sl_range}" if sl_range else ""
+        sl_constraint = (
+            f"\n- Average sentence length: {sl_range} per sentence (CEFR difficulty control — do NOT ignore)"
+            if sl_range else ""
+        )
         prompt = f"""You are assisting a human editor reviewing a draft article for \
 {cfg['newspaper']} (CEFR {cfg['cefr']}, target: {cfg['target']}, \
-{cfg['word_count_range']} words).
+{wc_range} words{sl_spec}).
 
 --- CURRENT DRAFT ---
 {article.text}
@@ -70,9 +79,13 @@ The editor says (may be in Korean):
 "{instruction}"
 
 Decide what the editor wants:
-1. If it is a REVISION REQUEST — rewrite the article applying it (keep CEFR level, \
-word count range, topic) and briefly explain in Korean what you changed.
+1. If it is a REVISION REQUEST — rewrite the article applying it. You MUST maintain \
+ALL of these constraints: word count {wc_range} words{sl_spec}, CEFR {cfg['cefr']} level, \
+same topic. Briefly explain in Korean what you changed.
 2. If it is a QUESTION or comment — answer it in Korean. Do NOT rewrite the article.
+
+Hard constraints when rewriting:
+- Word count: {wc_range} words (count carefully — stay within this range){sl_constraint}
 
 Respond in this exact format:
 <reply>

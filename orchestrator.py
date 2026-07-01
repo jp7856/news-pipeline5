@@ -202,6 +202,7 @@ class Orchestrator:
             article, _reply, changed = reviser.run(
                 package.article, instruction, package.level,
                 plagiarism_report=package.plagiarism_report,
+                sub_level=package.sub_level,
             )
             if changed:
                 package.article = article
