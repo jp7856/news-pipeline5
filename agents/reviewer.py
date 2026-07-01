@@ -70,7 +70,11 @@ class ReviewerAgent:
             )
             guideline_criterion = (
                 '\n9. 위 "작성 지침"을 준수했는가? (문체·어휘·문단 구성·금지 사항 등 '
-                '지침을 명백히 위반하면 거부하고 fix_targets에 "article"을 넣으세요)'
+                '지침을 명백히 위반하면 거부하고 fix_targets에 "article"을 넣으세요. '
+                '단, 지침에 인용·귀속 표현(quoted/attributed statement, "Experts say" 등) '
+                '요건이 있어도 이것만으로는 거부하지 마세요 — 인용 유무 판정은 이 검수의 '
+                '대상이 아닙니다. 기사에 인용이 자연스럽게 포함돼 있으면 그대로 두고, '
+                '없어도 문제 삼지 마세요. 이 판정은 추후 별도 시스템이 전담합니다.)'
             )
 
         prompt = f"""아래 NE Times 교육용 기사 패키지를 검수해주세요.
