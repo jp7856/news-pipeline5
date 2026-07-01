@@ -207,6 +207,7 @@ class ContentProducerAgent:
                     f"Also keep the word count within {wc_range} words. "
                     f"Keep the facts and fully original wording."
                 )
+                self._log(f"[{self.AGENT_LABEL}] sl 재작성 조준점: {_mid_hint}")
             if cefr_result and not cefr_result.passed:
                 self._log(
                     f"[{self.AGENT_LABEL}] CEFR 난이도 위반 — 재작성 {attempt}/{max_retries}회"
