@@ -2,6 +2,49 @@
 
 import json
 import re
+from typing import Callable
+
+
+def call_claude_json(
+    client,
+    log: Callable[[str], None],
+    label: str,
+    *,
+    model: str,
+    max_tokens: int,
+    messages: list,
+    system=None,
+) -> dict:
+    """Claude에 JSON 응답을 요청하고, 잘림/파싱 실패를 각 1회 재요청으로 방어한다.
+
+    Writer/Reviewer/Editor가 각자 복붙하던 동일한 방어 로직(응답 잘림 감지 →
+    재요청, JSON 파싱 실패 → 재요청)을 한 곳으로 모은다 — sl_aim_hint처럼
+    한쪽만 고치면 나머지가 어긋나는 문제를 막기 위함.
+
+    두 번 연속 잘리거나 재요청 후에도 파싱이 실패하면 ValueError를 올린다.
+    호출자가 상황에 맞게 처리한다(재작성 루프에 맡기기 / 검수오류 처리 /
+    빈 결과로 안전하게 넘어가기 등) — 이 함수는 실패를 감추지 않는다.
+    """
+    kwargs = {"model": model, "max_tokens": max_tokens, "messages": messages}
+    if system is not None:
+        kwargs["system"] = system
+
+    def _request():
+        return client.messages.create(**kwargs)
+
+    message = _request()
+    if message.stop_reason == "max_tokens":
+        log(f"[{label}] 응답이 토큰 한도에서 잘렸습니다 — 재요청")
+        message = _request()
+        if message.stop_reason == "max_tokens":
+            raise ValueError(f"{label} 응답이 두 번 연속 잘렸습니다")
+
+    try:
+        return parse_json(message.content[0].text)
+    except ValueError:
+        log(f"[{label}] JSON 파싱 실패 — 재요청")
+        message = _request()
+        return parse_json(message.content[0].text)  # 재실패 시 예외를 올려 호출자가 처리
 
 
 def sl_aim_hint(sl_range: str, level_value: str) -> str:

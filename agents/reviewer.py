@@ -1,6 +1,5 @@
 """Agent 5: 최종 검수 — ContentPackage 품질을 검토하고 승인/거부를 결정한다."""
 
-import json
 import logging
 from typing import Callable
 
@@ -8,6 +7,7 @@ import anthropic
 
 from config import ANTHROPIC_API_KEY, CLAUDE_MODEL
 from models import ArticleStatus, ContentPackage, ReviewResult
+from agents.sub_agents.utils import call_claude_json
 
 logger = logging.getLogger(__name__)
 
@@ -108,38 +108,11 @@ class ReviewerAgent:
 재작성이 필요한 부분을 골라 넣으세요 (선택지: "article", "translation", "crossword", "workbook"):
 {{"approved": true, "reason": "판단 이유를 한 줄로", "fix_targets": []}}"""
 
-        message = self._client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=512,
+        data = call_claude_json(
+            self._client, self._log, "Agent5",
+            model=CLAUDE_MODEL, max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
-        if message.stop_reason == "max_tokens":
-            self._log("[Agent5] 응답이 토큰 한도에서 잘렸습니다 — 재요청")
-            message = self._client.messages.create(
-                model=CLAUDE_MODEL,
-                max_tokens=512,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            if message.stop_reason == "max_tokens":
-                raise ValueError("검수 응답이 두 번 연속 잘렸습니다 — 검수불능 처리")
-
-        raw = message.content[0].text.strip()
-        if "```" in raw:
-            raw = raw.split("```")[1].lstrip("json").strip()
-
-        try:
-            data = json.loads(raw)
-        except json.JSONDecodeError:
-            self._log("[Agent5] JSON 파싱 실패 — 재요청")
-            message = self._client.messages.create(
-                model=CLAUDE_MODEL,
-                max_tokens=512,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            raw = message.content[0].text.strip()
-            if "```" in raw:
-                raw = raw.split("```")[1].lstrip("json").strip()
-            data = json.loads(raw)  # 재실패 시 예외를 올려 검수오류 처리
         approved = data.get("approved", False)
         reason = data.get("reason", "")
         fix_targets = [t for t in data.get("fix_targets", []) if t in self.FIX_TARGETS]
