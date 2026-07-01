@@ -276,10 +276,26 @@ CRITICAL JSON RULES:
             system_blocks.append(
                 {"type": "text", "text": guidelines, "cache_control": {"type": "ephemeral"}}
             )
-        message = self._client.messages.create(
-            model=CLAUDE_MODEL,
-            max_tokens=2048,
-            system=system_blocks,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return parse_json(message.content[0].text)
+
+        def _request():
+            return self._client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=2048,
+                system=system_blocks,
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+        message = _request()
+
+        if message.stop_reason == "max_tokens":
+            self._log("[Writer] 응답이 토큰 한도에서 잘렸습니다 — 재요청")
+            message = _request()
+            if message.stop_reason == "max_tokens":
+                raise ValueError("Writer 응답이 두 번 연속 잘렸습니다")
+
+        try:
+            return parse_json(message.content[0].text)
+        except ValueError:
+            self._log("[Writer] JSON 파싱 실패 — 재요청")
+            message = _request()
+            return parse_json(message.content[0].text)  # 재실패 시 예외를 올려 처리
