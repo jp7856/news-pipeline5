@@ -193,6 +193,8 @@ class Orchestrator:
 
         if "article" in targets:
             from agents.sub_agents.reviser import ReviserAgent
+            from agents.sub_agents.utils import sl_aim_hint
+            from config import SUBLEVEL_CONFIG
             reviser = ReviserAgent(log_callback=self._log)
             instruction = (
                 f"REVISION REQUEST: The article was rejected by the final reviewer "
@@ -202,11 +204,27 @@ class Orchestrator:
                 f"While fixing the listed issues, also maintain: "
                 f"factual accuracy, source alignment, and appropriate reading level."
             )
+            # sl(평균 문장 길이) 위반이 거부 사유에 있을 때만 조준점 추가 —
+            # wc/인용/표절 등 다른 사유에는 불필요. 조준점 없이 "줄여라"만 받으면
+            # Reviser가 과도하게 잘라 반대쪽 하한을 뚫는 현상(21.0→11.4)을 방지.
+            if "문장 길이" in (review.notes or ""):
+                sl_range = SUBLEVEL_CONFIG.get(package.level.value, {}).get(
+                    package.sub_level, {}
+                ).get("sentence_length", "")
+                if sl_range:
+                    aim = sl_aim_hint(sl_range, package.level.value)
+                    instruction += (
+                        f"\n\nFor the sentence-length issue specifically: aim for "
+                        f"{aim} — do not overcorrect past the opposite end of the range."
+                    )
+                    self._log(f"[Phase2] Reviser sl 재작성 조준점: {aim}")
             article, _reply, changed = reviser.run(
                 package.article, instruction, package.level,
                 plagiarism_report=package.plagiarism_report,
                 sub_level=package.sub_level,
             )
+            if _reply:
+                self._log(f"[Reviser] 설명: {_reply[:120]}")
             if changed:
                 package.article = article
                 package.plagiarism_report = producer._plagcheck.run(article)

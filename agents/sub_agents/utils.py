@@ -1,7 +1,25 @@
-"""공통 유틸리티 — Claude JSON 응답 파싱."""
+"""공통 유틸리티 — Claude JSON 응답 파싱, sl 재작성 조준점 계산."""
 
 import json
 import re
+
+
+def sl_aim_hint(sl_range: str, level_value: str) -> str:
+    """sl(평균 문장 길이) 재작성 지시에 쓸 조준점 힌트를 계산한다.
+
+    TIMES는 상한을 상습적으로 넘기는 경향이 확인되어 하위 40%를 조준하고,
+    나머지 매체는 범위 midpoint(50%)를 조준한다.
+    Phase1(content_producer.py)과 Phase2(reviser.py)가 반드시 같은 계산을
+    쓰도록 이 함수를 공유한다 — 한쪽만 바뀌면 두 단계의 조준점이 어긋난다.
+    """
+    try:
+        nums = re.findall(r"\d+", sl_range)
+        lo, hi = float(nums[0]), float(nums[1])
+        frac = 0.4 if level_value == "times" else 0.5
+        mid = lo + (hi - lo) * frac
+        return f"around {mid:.0f} words per sentence (within {sl_range})"
+    except Exception:
+        return f"the middle of the {sl_range} range"
 
 
 def parse_json(raw: str) -> dict:

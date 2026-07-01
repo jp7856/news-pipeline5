@@ -26,6 +26,7 @@ from agents.sub_agents import (
     CrosswordAgent,
     WorkbookAgent,
 )
+from agents.sub_agents.utils import sl_aim_hint
 
 logger = logging.getLogger(__name__)
 
@@ -191,15 +192,7 @@ class ContentProducerAgent:
                     f"— 재작성 {attempt}/{max_retries}회"
                 )
                 direction = "shorter, simpler sentences" if avg_sl > 0 and self._sl_over(avg_sl, sl_range) else "slightly longer, fuller sentences"
-                try:
-                    _nums = re.findall(r"\d+", sl_range)
-                    _lo, _hi = float(_nums[0]), float(_nums[1])
-                    # TIMES는 상한 상습 초과 확인 → 하위 40%로 조준; 나머지 매체는 midpoint
-                    _frac = 0.4 if level.value == "times" else 0.5
-                    _mid = _lo + (_hi - _lo) * _frac
-                    _mid_hint = f"around {_mid:.0f} words per sentence (within {sl_range})"
-                except Exception:
-                    _mid_hint = f"the middle of the {sl_range} range"
+                _mid_hint = sl_aim_hint(sl_range, level.value)
                 notes.append(
                     f"The article's AVERAGE sentence length is {avg_sl:.1f} words, which is OUTSIDE "
                     f"the required range of {sl_range}. Rewrite using {direction} so the average "
