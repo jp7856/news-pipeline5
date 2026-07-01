@@ -195,9 +195,12 @@ class Orchestrator:
             from agents.sub_agents.reviser import ReviserAgent
             reviser = ReviserAgent(log_callback=self._log)
             instruction = (
-                f"최종 검수에서 다음 사유로 거부되었습니다: {review.notes}\n"
-                f"이 문제가 해결되도록 기사를 수정해주세요. "
-                f"기사의 사실 관계와 출처, 레벨에 맞는 난이도는 유지하세요."
+                f"REVISION REQUEST: The article was rejected by the final reviewer "
+                f"for the following reason(s):\n{review.notes}\n\n"
+                f"You MUST rewrite the article to fix every issue listed above — "
+                f"this is the top priority and is non-negotiable. "
+                f"While fixing the listed issues, also maintain: "
+                f"factual accuracy, source alignment, and appropriate reading level."
             )
             article, _reply, changed = reviser.run(
                 package.article, instruction, package.level,
