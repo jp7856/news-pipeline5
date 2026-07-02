@@ -90,6 +90,9 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼 + 
 - 시트는 v3와 v4가 같은 것을 공유 중 — 분리 필요 시 새 시트 + 서비스 계정 공유 + SHEET_ID 교체
 - ne-times-site5는 Railway /api/published를 직접 호출 — articles.json 정적 파일 방식 아님
 - ne-times-site(구 사이트)는 의도적으로 연결 해제됨 — 복원하지 말 것
+- ⚠ run_vocab_review.py / vocab_monitor.py / analytical_seed.py 등 어휘 리뷰 계열 수정 시:
+  push 후 `railway up --service vocab-review-cron` 필요 (cron 서비스는 푸시 자동 배포 안 됨 — Railway 설계.
+  branch trigger는 master로 연결돼 있으나 cron 스케줄 서비스에는 무효 — 2026-07-02 대조 실험으로 확인)
 
 ## 비용 (실측)
 
