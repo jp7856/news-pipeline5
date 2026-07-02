@@ -11,6 +11,13 @@ VocabFlag:
 
 baseline_pct는 호출자가 제공 — 이 모듈은 임계값을 확정하지 않는다.
 NOT 패턴은 신문별로 호출자가 주입; None이면 TIMES 기본값 적용.
+
+── analytical_seed 신호 (v1, 추가) ──────────────────────────────────────────
+위 VocabFlag 결정(C2VA ratio 기반)에는 관여하지 않는다 — 순수 부가 정보다.
+analytical_seed.measure()의 결과(시드 히트/100토큰, 매칭 시드 단어와 횟수,
+carve-out 여부)를 MonitorResult에 그대로 실어 검토 큐 항목에서 같이 보이게
+할 뿐, 이 신호로 flag를 올리거나 내리지 않는다. 시드는 8개로 고정이며
+이 모듈에서 추가·제거하지 않는다(변경은 지침 NOT-examples 갱신 → 수동 반영).
 """
 from __future__ import annotations
 
@@ -20,6 +27,7 @@ from enum import Enum
 
 import cefrpy
 
+from agents.sub_agents import analytical_seed
 from agents.sub_agents.vocab_checker import (
     DOMAIN_TERMS,
     NOT_WORDS,
@@ -87,23 +95,35 @@ class MonitorResult:
     flag_reason:   str            = ""
     baseline_pct:  float          = 0.0
     above_baseline: bool          = False
+    # ── analytical_seed 신호 (v1) — flag 결정에 관여 안 함, 부가 정보만 ──────
+    seed_hits_per_100:  float           = 0.0
+    seed_hit_count:     int             = 0
+    seed_matched_words: dict[str, int]  = field(default_factory=dict)
+    seed_carved_out:    bool            = False
+    seed_skipped_reason: str            = ""
 
 
 def check(
     text: str,
     baseline_pct: float,
     not_patterns: dict[str, re.Pattern] | None = None,
+    section: str = "",
 ) -> MonitorResult:
     """
     text:          기사 본문
     baseline_pct:  섹션 C2VA 기준선 (호출자가 결정 — 이 함수는 수치 확정 없음)
     not_patterns:  신문별 NOT 단어 패턴. None → TIMES 기본값(TIMES_NOT_PATTERNS).
+    section:       기사 섹션명 — analytical_seed의 debate/Key Issue carve-out 판정에만 사용.
 
     반환: MonitorResult (flag=NONE/WEAK/STRONG, reason 포함)
     차단·재작성 없음 — 호출자가 flag를 로그/검토목록에 기록하는 것까지만.
+    seed_* 필드는 analytical_seed.measure() 결과를 그대로 담은 부가 정보이며
+    flag 결정에는 영향을 주지 않는다.
     """
     if not_patterns is None:
         not_patterns = TIMES_NOT_PATTERNS
+
+    seed_result = analytical_seed.measure(text, section=section)
 
     # NOT 단어: 원문 패턴 매칭 (단어 경계, 대소문자 무시)
     not_hits: dict[str, int] = {
@@ -145,6 +165,13 @@ def check(
         words_str = ", ".join(f"{w}×{n}" for w, n in not_hits.items())
         reason = f"C2VA {c2va_pct:.2f}% > {baseline_pct:.2f}%, NOT: {words_str}"
 
+    # analytical_seed 신호는 flag 결정과 무관 — reason 뒤에 부가 정보로만 덧붙인다.
+    if seed_result.carved_out:
+        reason += f" | seed: carve-out ({seed_result.skipped_reason})"
+    elif seed_result.hit_count:
+        seed_words_str = ", ".join(f"{w}×{n}" for w, n in seed_result.matched_words.items())
+        reason += f" | seed {seed_result.hits_per_100}/100: {seed_words_str}"
+
     return MonitorResult(
         c2va_pct=c2va_pct,
         c2va_count=c2va,
@@ -155,4 +182,9 @@ def check(
         flag_reason=reason,
         baseline_pct=baseline_pct,
         above_baseline=above,
+        seed_hits_per_100=seed_result.hits_per_100,
+        seed_hit_count=seed_result.hit_count,
+        seed_matched_words=seed_result.matched_words,
+        seed_carved_out=seed_result.carved_out,
+        seed_skipped_reason=seed_result.skipped_reason,
     )
