@@ -81,6 +81,29 @@ def _c2_pos_cat(word: str) -> str:
     return cat
 
 
+# 월간 리뷰 큐(Vocab Review 탭) 상단에 그대로 박는 리뷰 가이드.
+# flag 로직 아님 — 리뷰어용 안내 문서 상수.
+REVIEW_GUIDE = """\
+[Vocab Review 가이드]
+flag 의미:
+  WEAK   = C2VA > baseline, NOT 단어 0 — 토픽 전문어 가능성 높음. 참고용.
+  STRONG = C2VA > baseline + NOT 단어 1+, 또는 SEED_DRIFT(시드 히트 1+) — 사람 판단 필요.
+판정 축: C2VA(비율 축, 참고 신호)와 SEED_DRIFT(큐레이션 시드 히트, 독립 축)는 별개.
+  SEED_DRIFT: conduct×1 형식 = 어떤 시드 단어가 몇 번 나왔는지.
+
+리뷰 액션 판정 기준:
+  정상(오탐)                = 시드/C2VA가 걸렸지만 본문이 타겟 레벨에 적절함.
+  드리프트 확인–지침 갱신 필요 = 실제 어휘 드리프트. 수정 위치는 이 스크립트가 아니라
+    ① 해당 매체 지침 md의 NOT-examples (agents/guidelines/agent1_4_times.md 류)
+    ② vocab_checker.py NOT_WORDS — 반드시 이 순서로 갱신.
+    시드는 지침에 먼저 올라간 단어만 승격한다(즉흥 추가 금지).
+  드리프트 확인–시드 후보     = 드리프트인데 현 시드가 못 잡은 단어 발견 — 지침 갱신 후보.
+  보류                     = 판단 유보. 다음 달 재검토.
+
+"정상(오탐)"이 특정 시드 단어에서 반복되면(예: conduct가 과학 기사에서 계속 오탐):
+그 단어의 시드 제외를 검토하되, 이 판단도 지침 갱신을 경유한다."""
+
+
 class VocabFlag(str, Enum):
     NONE   = "NONE"    # C2VA ≤ baseline_pct, 시드 히트 0
     WEAK   = "WEAK"    # C2VA > baseline_pct, NOT 단어 0
@@ -111,22 +134,25 @@ def check(
     baseline_pct: float,
     not_patterns: dict[str, re.Pattern] | None = None,
     section: str = "",
+    level_key: str = "TIMES_L2",
 ) -> MonitorResult:
     """
     text:          기사 본문
     baseline_pct:  섹션 C2VA 기준선 (호출자가 결정 — 이 함수는 수치 확정 없음)
     not_patterns:  신문별 NOT 단어 패턴. None → TIMES 기본값(TIMES_NOT_PATTERNS).
     section:       기사 섹션명 — analytical_seed의 debate/Key Issue carve-out 판정에만 사용.
+    level_key:     article_classifier.BRIEF_THRESHOLD 키 (예: 'KINDER_L2') —
+                   analytical_seed의 BRIEF/DIALOGUE carve-out 임계값에만 사용.
+                   미지정 시 TIMES_L2 기준이라 짧은 매체(KINDER 등)는 전부
+                   BRIEF로 carve-out되므로 호출자가 매체에 맞게 넘겨야 한다.
 
     반환: MonitorResult (flag=NONE/WEAK/STRONG, reason 포함)
     차단·재작성 없음 — 호출자가 flag를 로그/검토목록에 기록하는 것까지만.
-    seed_* 필드는 analytical_seed.measure() 결과를 그대로 담은 부가 정보이며
-    flag 결정에는 영향을 주지 않는다.
     """
     if not_patterns is None:
         not_patterns = TIMES_NOT_PATTERNS
 
-    seed_result = analytical_seed.measure(text, section=section)
+    seed_result = analytical_seed.measure(text, section=section, level_key=level_key)
 
     # NOT 단어: 원문 패턴 매칭 (단어 경계, 대소문자 무시)
     not_hits: dict[str, int] = {
