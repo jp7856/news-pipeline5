@@ -128,12 +128,52 @@ def main() -> None:
     period_label = f"{period}-01~{period}-31"
     print(f"=== Vocab Review 실행 — 대상 기간: {period} ===")
 
-    ss = _open_spreadsheet()
+    # 실패 가시성(cron 자동 실행 전제): 스캔·Vocab Review 기록 중 무엇이 죽어도
+    # Run Log에는 반드시 행이 남는다(실패 시 FAILED + 에러 1줄). Run Log 기록조차
+    # 불가(시트 접근 실패)면 Railway 로그에 [FATAL]을 남기고 exit 1.
+    ss: gspread.Spreadsheet | None = None
+    error: Exception | None = None
+    scanned = carved = weak = strong = seed_only = 0
+    try:
+        ss = _open_spreadsheet()
+        scanned, carved, weak, strong, seed_only = _scan_and_record(
+            ss, period, run_date, period_label
+        )
+    except Exception as e:
+        error = e
+        import traceback
+        print(f"[FAILED] Vocab Review 실행 실패: {e}")
+        traceback.print_exc()
+
+    # ── Run Log 탭 (성공/실패 무관, flag 0건이어도 반드시 남김) ─────────────
+    try:
+        if ss is None:
+            ss = _open_spreadsheet()
+        runlog_ws, _ = _get_or_create_tab(ss, RUNLOG_TAB, RUNLOG_HEADER)
+        if error is None:
+            log_row = [run_date, period_label, scanned, carved, weak, strong,
+                       seed_only, ", ".join(SEED_WORDS)]
+        else:
+            log_row = [run_date, period_label, "FAILED", "-", "-", "-", "-",
+                       f"ERROR: {type(error).__name__}: {str(error)[:200]}"]
+        runlog_ws.append_row(log_row, value_input_option="RAW")
+        print(f"[OK] Run Log 기록 — {'FAILED 행' if error else '시드 스냅샷: ' + ', '.join(SEED_WORDS)}")
+    except Exception as e2:
+        print(f"[FATAL] Run Log 기록 불가 — 시트 접근 자체가 실패: {e2}")
+        sys.exit(1)
+
+    if error is not None:
+        sys.exit(1)
+
+
+def _scan_and_record(
+    ss: gspread.Spreadsheet, period: str, run_date: str, period_label: str
+) -> tuple[int, int, int, int, int]:
+    """원본 스캔 + Vocab Review 탭 기록. 실패는 위로 전파(호출자가 FAILED 처리)."""
     src = ss.sheet1  # 원본 기사 시트 — 읽기 전용
     rows = src.get_all_values()
     if not rows or rows[0][0] != SHEET_COLUMNS[0]:
-        print("[중단] 원본 시트 헤더가 예상과 다릅니다 — 컬럼 구조 확인 필요")
-        return
+        raise ValueError("원본 시트 헤더가 예상과 다릅니다 — 컬럼 구조 확인 필요")
 
     scanned = carved = weak = strong = seed_only = 0
     review_rows: list[list] = []
@@ -186,44 +226,30 @@ def main() -> None:
     if not review_rows:
         print("  flag 0건 — Vocab Review 탭에 추가할 행 없음")
 
-    # ── Vocab Review 탭 ─────────────────────────────────────────────────────
-    try:
-        review_ws, _ = _get_or_create_tab(
-            ss, REVIEW_TAB, REVIEW_HEADER, guide=vocab_monitor.REVIEW_GUIDE
+    # ── Vocab Review 탭 (행 기록 실패는 위로 전파 → FAILED 처리) ────────────
+    review_ws, _ = _get_or_create_tab(
+        ss, REVIEW_TAB, REVIEW_HEADER, guide=vocab_monitor.REVIEW_GUIDE
+    )
+    if review_rows:
+        start = len(review_ws.get_all_values()) + 1
+        review_ws.update(
+            values=review_rows, range_name=f"A{start}",
+            value_input_option="USER_ENTERED",  # HYPERLINK 수식 해석
         )
-        if review_rows:
-            start = len(review_ws.get_all_values()) + 1
-            review_ws.update(
-                values=review_rows, range_name=f"A{start}",
-                value_input_option="USER_ENTERED",  # HYPERLINK 수식 해석
+        # 리뷰 액션 드롭다운 (외관용 — 실패해도 행 기록은 유지)
+        try:
+            from gspread.utils import ValidationConditionType
+            col = REVIEW_HEADER.index("리뷰 액션") + 1
+            col_a1 = gspread.utils.rowcol_to_a1(1, col)[:-1]
+            review_ws.add_validation(
+                f"{col_a1}{start}:{col_a1}{start + len(review_rows) - 1}",
+                ValidationConditionType.one_of_list, REVIEW_ACTIONS,
+                showCustomUi=True,
             )
-            # 리뷰 액션 드롭다운 (실패해도 행 기록은 유지)
-            try:
-                from gspread.utils import ValidationConditionType
-                col = REVIEW_HEADER.index("리뷰 액션") + 1
-                col_a1 = gspread.utils.rowcol_to_a1(1, col)[:-1]
-                review_ws.add_validation(
-                    f"{col_a1}{start}:{col_a1}{start + len(review_rows) - 1}",
-                    ValidationConditionType.one_of_list, REVIEW_ACTIONS,
-                    showCustomUi=True,
-                )
-            except Exception as e:
-                print(f"[경고] 리뷰 액션 드롭다운 설정 실패 (행 기록은 완료): {e}")
-        print(f"\n[OK] Vocab Review 탭 — {len(review_rows)}행 기록")
-    except Exception as e:
-        print(f"[오류] Vocab Review 탭 쓰기 실패: {e}")
-
-    # ── Run Log 탭 (flag 0건이어도 반드시 남김) ─────────────────────────────
-    try:
-        runlog_ws, _ = _get_or_create_tab(ss, RUNLOG_TAB, RUNLOG_HEADER)
-        runlog_ws.append_row(
-            [run_date, period_label, scanned, carved, weak, strong, seed_only,
-             ", ".join(SEED_WORDS)],
-            value_input_option="RAW",
-        )
-        print(f"[OK] Run Log 기록 — 시드 스냅샷: {', '.join(SEED_WORDS)}")
-    except Exception as e:
-        print(f"[오류] Run Log 쓰기 실패: {e}")
+        except Exception as e:
+            print(f"[경고] 리뷰 액션 드롭다운 설정 실패 (행 기록은 완료): {e}")
+    print(f"\n[OK] Vocab Review 탭 — {len(review_rows)}행 기록")
+    return scanned, carved, weak, strong, seed_only
 
 
 if __name__ == "__main__":
