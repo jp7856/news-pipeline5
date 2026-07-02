@@ -1,6 +1,9 @@
 """
 vocab_monitor.py — 어휘 드리프트 모니터링 (방식 3).
 
+⚠ 이 파일 수정 시: push 후 `railway up --service vocab-review-cron` 필요
+  (cron 서비스는 푸시 자동 배포 안 됨 — Railway 설계).
+
 게이트 아님 — 차단·재작성 없음. 기록·플래그만.
 생성 루프 안에 걸지 말 것: 재작성 트리거로 쓰면 무한루프 위험.
 

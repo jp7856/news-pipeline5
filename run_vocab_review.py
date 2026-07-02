@@ -1,6 +1,10 @@
-"""run_vocab_review.py — 어휘 드리프트 월간 리뷰 (v1, 수동 실행 전용).
+"""run_vocab_review.py — 어휘 드리프트 월간 리뷰 (v2, Railway cron 자동 실행).
 
-매달 한 번 사람이 직접 돌린다. cron/Actions 자동화 금지(v2에서).
+⚠ 이 파일 수정 시: push 후 `railway up --service vocab-review-cron` 필요
+  (cron 서비스는 푸시 자동 배포 안 됨 — Railway 설계).
+
+매달 1일 00:00 UTC(KST 09:00)에 Railway cron(vocab-review-cron 서비스)이 실행.
+수동 실행도 가능: railway run python run_vocab_review.py [YYYY-MM]
 생성·발행 파이프라인과 무배선 — 이 파일이 유일한 진입점이다.
 
 동작:
