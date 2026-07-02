@@ -5,19 +5,22 @@ vocab_monitor.py — 어휘 드리프트 모니터링 (방식 3).
 생성 루프 안에 걸지 말 것: 재작성 트리거로 쓰면 무한루프 위험.
 
 VocabFlag:
-  NONE:   C2VA ≤ baseline_pct                              → 정상, 기록 없음
+  NONE:   C2VA ≤ baseline_pct, 시드 히트 0                 → 정상, 기록 없음
   WEAK:   C2VA > baseline_pct, NOT 단어 0                  → 로그만 (토픽 전문어 가능성)
-  STRONG: C2VA > baseline_pct, NOT 단어 1+                 → 사람 검토 목록
+  STRONG: C2VA > baseline_pct + NOT 단어 1+, 또는
+          시드 히트 1+ (SEED_DRIFT — C2VA와 별개의 독립 축) → 사람 검토 목록
 
 baseline_pct는 호출자가 제공 — 이 모듈은 임계값을 확정하지 않는다.
 NOT 패턴은 신문별로 호출자가 주입; None이면 TIMES 기본값 적용.
 
-── analytical_seed 신호 (v1, 추가) ──────────────────────────────────────────
-위 VocabFlag 결정(C2VA ratio 기반)에는 관여하지 않는다 — 순수 부가 정보다.
-analytical_seed.measure()의 결과(시드 히트/100토큰, 매칭 시드 단어와 횟수,
-carve-out 여부)를 MonitorResult에 그대로 실어 검토 큐 항목에서 같이 보이게
-할 뿐, 이 신호로 flag를 올리거나 내리지 않는다. 시드는 8개로 고정이며
-이 모듈에서 추가·제거하지 않는다(변경은 지침 NOT-examples 갱신 → 수동 반영).
+── analytical_seed 신호 (v1) ────────────────────────────────────────────────
+시드 히트 > 0이면 C2VA 판정과 무관하게 STRONG(검토 큐)으로 승격한다 —
+"SEED_DRIFT: conduct×1" 형식의 독립 사유. 이것은 임계값이 아니다(0 초과 =
+히트 존재 여부일 뿐, 튜닝할 숫자가 없다). 검증셋(C2VA>=4.76% topic 기사
+19건)은 전부 시드 히트 0이라 이 규칙으로 걸리지 않음을 실측으로 확인함.
+debate/Key Issue 계열은 analytical_seed가 carve-out하므로 승격 대상 아님.
+시드는 8개로 고정이며 이 모듈에서 추가·제거하지 않는다(변경은 지침
+NOT-examples 갱신 → 수동 반영). 생성·발행 차단 없음 — 검토 큐 신호까지만.
 """
 from __future__ import annotations
 
@@ -79,9 +82,9 @@ def _c2_pos_cat(word: str) -> str:
 
 
 class VocabFlag(str, Enum):
-    NONE   = "NONE"    # C2VA ≤ baseline_pct
+    NONE   = "NONE"    # C2VA ≤ baseline_pct, 시드 히트 0
     WEAK   = "WEAK"    # C2VA > baseline_pct, NOT 단어 0
-    STRONG = "STRONG"  # C2VA > baseline_pct, NOT 단어 1+
+    STRONG = "STRONG"  # C2VA > baseline_pct + NOT 단어 1+, 또는 시드 히트 1+ (SEED_DRIFT)
 
 
 @dataclass
@@ -165,12 +168,14 @@ def check(
         words_str = ", ".join(f"{w}×{n}" for w, n in not_hits.items())
         reason = f"C2VA {c2va_pct:.2f}% > {baseline_pct:.2f}%, NOT: {words_str}"
 
-    # analytical_seed 신호는 flag 결정과 무관 — reason 뒤에 부가 정보로만 덧붙인다.
+    # 시드 히트는 C2VA와 별개의 독립 큐 포함 사유 — 히트 1+면 STRONG으로 승격.
+    # 임계값 아님: 0 초과 = 히트 존재 여부일 뿐, 튜닝할 숫자가 없다.
     if seed_result.carved_out:
         reason += f" | seed: carve-out ({seed_result.skipped_reason})"
     elif seed_result.hit_count:
         seed_words_str = ", ".join(f"{w}×{n}" for w, n in seed_result.matched_words.items())
-        reason += f" | seed {seed_result.hits_per_100}/100: {seed_words_str}"
+        flag = VocabFlag.STRONG
+        reason += f" | SEED_DRIFT: {seed_words_str} ({seed_result.hits_per_100}/100)"
 
     return MonitorResult(
         c2va_pct=c2va_pct,
