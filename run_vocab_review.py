@@ -1,15 +1,17 @@
-"""run_vocab_review.py — 어휘 드리프트 월간 리뷰 (v2, Railway cron 자동 실행).
+"""run_vocab_review.py — 어휘 드리프트 주간 리뷰 (v3, Railway cron 자동 실행).
 
 ⚠ 이 파일 수정 시: push 후 `railway up --service vocab-review-cron` 필요
   (cron 서비스는 푸시 자동 배포 안 됨 — Railway 설계).
 
-매달 1일 00:00 UTC(KST 09:00)에 Railway cron(vocab-review-cron 서비스)이 실행.
-수동 실행도 가능: railway run python run_vocab_review.py [YYYY-MM]
+매주 일요일 20:00 UTC(= KST 월요일 05:00)에 Railway cron(vocab-review-cron
+서비스)이 실행 — KST 월요일 아침 열람 시점에 결과가 준비돼 있도록.
+기본 대상: 직전 완결 주 KST 월~일 7일.
+수동 실행: railway run python run_vocab_review.py [YYYY-MM | YYYY-MM-DD~YYYY-MM-DD]
 생성·발행 파이프라인과 무배선 — 이 파일이 유일한 진입점이다.
 
 동작:
   1. Google Sheets(기존 GOOGLE_SHEETS_CREDENTIALS_JSON / GOOGLE_SHEET_ID 재사용)에서
-     대상 월에 생성된 기사를 읽는다 (원본 시트는 읽기 전용 — 절대 쓰지 않음).
+     대상 기간에 생성된 기사를 읽는다 (원본 시트는 읽기 전용 — 절대 쓰지 않음).
   2. vocab_monitor.check()로 스캔 — flag 로직·시드·임계값은 이 스크립트가 결정하지 않음.
   3. flag(WEAK/STRONG)된 기사를 "Vocab Review" 탭에 1건 1행으로 기록 (없으면 생성).
   4. 실행 요약을 "Run Log" 탭에 남긴다 (flag 0건이어도 남김).
@@ -22,13 +24,14 @@ CCTV_THRESHOLD와 동일). 이 저장소에 이미 존재하던 유일한 실증
 독립 축인 SEED_DRIFT는 baseline과 무관하다.
 
 실행:
-  python run_vocab_review.py              # 지난달 대상
-  python run_vocab_review.py 2026-06     # 특정 월 대상
+  python run_vocab_review.py                          # 직전 주 (월~일)
+  python run_vocab_review.py 2026-06-22~2026-06-28   # 특정 주 백필
+  python run_vocab_review.py 2026-06                 # 월 단위 백필
 """
 import io
 import json
 import sys
-from datetime import date, datetime
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, __file__.rsplit("\\", 1)[0] if "\\" in __file__ else ".")
 
@@ -91,10 +94,38 @@ def _level_key(level: str, sub_level: str) -> str:
     return level.replace("_", "").upper() + "_" + sub
 
 
-def _prev_month() -> str:
-    today = date.today()
-    y, m = (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
-    return f"{y:04d}-{m:02d}"
+def _last_week_window() -> tuple[str, str]:
+    """직전 완결 주(월~일)의 KST 날짜 범위를 반환한다.
+
+    실행 시각(UTC)을 KST(+9h)로 변환해 계산한다. Railway cron은 일요일
+    20:00 UTC = KST 월요일 05:00에 실행되므로, 그 시점의 '직전 월~일'은
+    어제(KST 일요일)로 끝난 주가 된다. 주중 수동 실행 시에도 마지막으로
+    완결된 월~일 주를 잡는다(진행 중인 이번 주는 포함하지 않음).
+    """
+    kst_today = (datetime.now(timezone.utc) + timedelta(hours=9)).date()
+    last_monday = kst_today - timedelta(days=kst_today.weekday() + 7)
+    last_sunday = last_monday + timedelta(days=6)
+    return last_monday.isoformat(), last_sunday.isoformat()
+
+
+def _parse_period(arg: str | None):
+    """기간 인자 → (날짜 매칭 함수, 표기 라벨).
+
+    - 없음: 직전 완결 주 KST 월~일 (주간 정기 실행 기본값)
+    - "YYYY-MM-DD~YYYY-MM-DD": 명시 구간 (주간 백필/재실행용)
+    - "YYYY-MM": 월 단위 (기존 방식 유지 — 월간 백필용)
+
+    비고: 원본 시트 생성일시는 Railway(UTC) 기록이라 KST 주 경계와 최대
+    9시간 어긋날 수 있으나, 창들이 날짜 문자열을 빈틈없이 분할하므로
+    기사가 두 창에 겹치거나 어느 창에서도 빠지는 일은 없다.
+    """
+    if arg is None:
+        start, end = _last_week_window()
+        return (lambda d: start <= d[:10] <= end), f"{start}~{end}"
+    if "~" in arg:
+        start, end = arg.split("~", 1)
+        return (lambda d: start <= d[:10] <= end), f"{start}~{end}"
+    return (lambda d: d.startswith(arg)), f"{arg}-01~{arg}-31"
 
 
 def _axes(r: vocab_monitor.MonitorResult) -> str:
@@ -127,10 +158,10 @@ def _get_or_create_tab(ss: gspread.Spreadsheet, title: str, header: list[str], g
 
 
 def main() -> None:
-    period = sys.argv[1] if len(sys.argv) > 1 else _prev_month()
+    arg = sys.argv[1] if len(sys.argv) > 1 else None
+    date_match, period_label = _parse_period(arg)
     run_date = datetime.now().strftime("%Y-%m-%d %H:%M")
-    period_label = f"{period}-01~{period}-31"
-    print(f"=== Vocab Review 실행 — 대상 기간: {period} ===")
+    print(f"=== Vocab Review 실행 — 대상 기간: {period_label} ===")
 
     # 실패 가시성(cron 자동 실행 전제): 스캔·Vocab Review 기록 중 무엇이 죽어도
     # Run Log에는 반드시 행이 남는다(실패 시 FAILED + 에러 1줄). Run Log 기록조차
@@ -141,7 +172,7 @@ def main() -> None:
     try:
         ss = _open_spreadsheet()
         scanned, carved, weak, strong, seed_only = _scan_and_record(
-            ss, period, run_date, period_label
+            ss, date_match, run_date, period_label
         )
     except Exception as e:
         error = e
@@ -171,7 +202,7 @@ def main() -> None:
 
 
 def _scan_and_record(
-    ss: gspread.Spreadsheet, period: str, run_date: str, period_label: str
+    ss: gspread.Spreadsheet, date_match, run_date: str, period_label: str
 ) -> tuple[int, int, int, int, int]:
     """원본 스캔 + Vocab Review 탭 기록. 실패는 위로 전파(호출자가 FAILED 처리)."""
     src = ss.sheet1  # 원본 기사 시트 — 읽기 전용
@@ -184,7 +215,7 @@ def _scan_and_record(
     src_gid = src.id
 
     for idx, row in enumerate(rows[1:], start=2):  # 시트 행번호 (헤더=1행)
-        if len(row) <= _COL_TEXT or not row[_COL_DATE].startswith(period):
+        if len(row) <= _COL_TEXT or not date_match(row[_COL_DATE]):
             continue
         text = row[_COL_TEXT]
         if not text.strip():

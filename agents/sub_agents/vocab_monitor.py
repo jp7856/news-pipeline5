@@ -84,7 +84,7 @@ def _c2_pos_cat(word: str) -> str:
     return cat
 
 
-# 월간 리뷰 큐(Vocab Review 탭) 상단에 그대로 박는 리뷰 가이드.
+# 주간 리뷰 큐(Vocab Review 탭) 상단에 그대로 박는 리뷰 가이드.
 # flag 로직 아님 — 리뷰어용 안내 문서 상수.
 REVIEW_GUIDE = """\
 [Vocab Review 가이드]
@@ -105,7 +105,7 @@ flag 의미:
 
 "정상(오탐)"이 특정 시드 단어에서 반복되면(예: conduct가 과학 기사에서 계속 오탐):
 그 단어의 시드 제외를 검토하되, 이 판단도 지침 갱신을 경유한다.
-이 리뷰는 매달 1일 자동 실행된다(Railway cron) — 이번 달 Run Log 행이 없으면 실행이 죽은 것이니 Railway 로그를 확인할 것."""
+매주 월요일 아침에 이 시트를 열어 Run Log 최신 행부터 확인. 이번 주 행이 없으면 실행이 죽은 것이니 Railway 로그 확인."""
 
 
 class VocabFlag(str, Enum):
