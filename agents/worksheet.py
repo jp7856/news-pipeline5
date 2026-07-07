@@ -171,6 +171,8 @@ class WorksheetAgent:
                     ),
                     "sheet_row": idx + 2,  # 헤더가 1행이므로 데이터는 2행부터
                     "published": len(row) > 15 and row[15].startswith("발행"),
+                    # 필자(On Air 바이라인) — 구버전 행은 빈 값 → 프론트가 레벨 매핑으로 폴백
+                    "byline": row[20] if len(row) > 20 else "",
                 }
                 try:
                     cost_krw = round(float(row[16])) if len(row) > 16 and row[16] else 0

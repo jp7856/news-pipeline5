@@ -14,7 +14,7 @@ from flask_socketio import SocketIO, join_room
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import LEVEL_CONFIG, SUBLEVEL_CONFIG, DEFAULT_SUBLEVEL
 from orchestrator import Orchestrator, PipelineCancelled
-from agents.worksheet import WorksheetAgent
+from agents.worksheet import WorksheetAgent, BYLINE_AUTHORS
 from models import ContentPackage, Level, Section
 
 logger = logging.getLogger(__name__)
@@ -297,6 +297,7 @@ def api_published():
             "section": e["section"],
             "article": e["result"]["article"],
             "image_url": e["result"].get("image_url", ""),
+            "byline": e["result"].get("byline", ""),  # On Air 필자 (빈 값이면 프론트 폴백)
         }
         for e in _history
         if e.get("result", {}).get("published")
@@ -464,6 +465,7 @@ def _serialize(pkg: ContentPackage, sheet_url: str = "") -> dict:
         ],
         "image_url": pkg.image_url,
         "image_candidates": pkg.image_candidates,
+        "byline": BYLINE_AUTHORS.get(pkg.level.value, ""),
         "sheet_url": sheet_url,
         "review": {
             "passed": review.passed,
