@@ -25,7 +25,18 @@ SHEET_COLUMNS = [
     "크로스워드", "워크북Set1", "워크북Set2", "상태", "비용(원)", "서브레벨",
     "검수경고",  # Agent5 LLM 지적사항 (soft — 상태와 무관, 발행 전 참고)
     "거부사유",  # hard 게이트 거부 시 게이트별 줄바꿈 구분 ("❌ [게이트] 측정값 / 허용 — 출처")
+    "필자",      # On Air 캐릭터 바이라인 (BYLINE_AUTHORS — docs/on_air_bible.md 단일 소스)
 ]
+
+# On Air 캐릭터 바이라인 — 발행물→필자 고정 매핑.
+# IP 원본은 docs/on_air_bible.md. 사이트 바이라인·프로필 등 후속 작업도 이 상수를 참조한다.
+BYLINE_AUTHORS: dict[str, str] = {
+    "kinder":   "Leo",
+    "kids":     "Ruby",
+    "junior":   "Sunny",
+    "junior_m": "Erin",
+    "times":    "Daniel",
+}
 
 STATUS_COL = SHEET_COLUMNS.index("상태") + 1     # 상태 컬럼 위치 (1-based)
 COST_COL = SHEET_COLUMNS.index("비용(원)") + 1   # 비용 컬럼 위치 (1-based)
@@ -232,6 +243,7 @@ class WorksheetAgent:
              if pkg.review_result and pkg.review_result.warnings else ""),
             (pkg.review_result.notes
              if pkg.review_result and not pkg.review_result.passed else ""),
+            BYLINE_AUTHORS.get(pkg.level.value, ""),
         ]
 
     @staticmethod

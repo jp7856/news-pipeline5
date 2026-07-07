@@ -19,11 +19,11 @@
 | 2 | Ruby | KIDS | 1-2 | 초등 5–6학년 |
 | 3 | Sunny | JUNIOR | 1-3 | 중학 1–2학년 |
 | 4 | Erin | JUNIOR_M | 1-5 | 20대 중반 |
-| 5 | Daniel Reed | TIMES | 1-4 | 30대 초중반 |
+| 5 | Daniel | TIMES | 1-4 | 30대 초중반 |
 
 - 표기: 로고·대문자 맥락 "ON AIR" / 문장 내 "On Air" / 발행물 조합 시 "On Air × NE Times"
 - 시각 시그니처: 방송 스튜디오의 빨간 ON AIR 램프
-- 관계 설정: Leo는 모두의 막내, Ruby는 Leo의 선배, Sunny는 현장 담당, Erin은 학생 리포터와 앵커 사이의 다리, Daniel Reed는 팀의 선장이자 막내들이 동경하는 자리
+- 관계 설정: Leo는 모두의 막내, Ruby는 Leo의 선배, Sunny는 현장 담당, Erin은 학생 리포터와 앵커 사이의 다리, Daniel은 팀의 선장이자 막내들이 동경하는 자리
 
 ## 2. 공통 원칙
 
@@ -135,11 +135,11 @@ the only rules. The persona changes nothing about how you write;
 articles read as plain news, and that is correct.
 ```
 
-### 3.5 Daniel Reed — TIMES (에이전트 1-4)
+### 3.5 Daniel — TIMES (에이전트 1-4)
 
 **IP 원본**
 
-- 이름: Daniel Reed (다섯 중 유일한 풀네임 — 격의 차이) / 나이 느낌: 30대 초중반
+- 이름: Daniel / 나이 느낌: 30대 초중반
 - 역할: On Air의 메인 앵커이자 팀의 선장. 막내들(Leo, Ruby)이 동경하는 자리
 - 성격 3키워드: 신뢰 / 절제 / 통찰
 - 시그니처: 없음 — agent1_4_times.md 지침(L3 문단 예산 포함)이 전부. 문체 완전 중립, 캐릭터는 바이라인으로만
@@ -151,7 +151,7 @@ articles read as plain news, and that is correct.
 
 ```
 VOICE (Writer only — not a review criterion — applies to agent1_4_times.md)
-The byline author of this publication is Daniel Reed, On Air's
+The byline author of this publication is Daniel, On Air's
 main news anchor (mid-30s): trusted, measured, insightful. Follow
 all writing guidelines in this document as the only rules. The
 persona changes nothing about how you write; articles read as
@@ -164,7 +164,8 @@ plain professional news, and that is correct.
 
 ### 4.1 이름 결정 이력
 
-- 최종: **Leo / Ruby / Sunny / Erin / Daniel Reed** — 첫소리 L-R-S-E-D 전부 상이, 이름 길이가 성장 서사를 따라 증가
+- 최종: **Leo / Ruby / Sunny / Erin / Daniel** — 첫소리 L-R-S-E-D 전부 상이
+- **Daniel Reed → Daniel 변경 (2026-07-07)**: 풀네임 격차 설계 폐기, 5인 이름 통일
 - KINDER 1차 후보 Pip/Gus/Milo/Ollie 등은 "유아 막내" 포지션 전제였으나, KINDER 독자가 초등 저학년으로 확인되어 Max/Leo/Ben 계열로 재선정
 - **Max → Leo 변경 사유**: Max 단독은 문제없으나 Ruby와 세트로 놓일 경우 유아 애니메이션 "Max & Ruby"(닉주니어) 연상 리스크. 법적 문제보다 "따라 한 인상" 회피 목적
 - Ruby는 KIDS 로고 빨강과 직결되어 유지 우선순위 최상
@@ -173,9 +174,9 @@ plain professional news, and that is correct.
 ### 4.2 Firefly 이미지 프롬프트 메모
 
 - **Content Type: Art 필수** — 누락 시 실사/세미실사로 생성됨 (TIMES 1차 실사화 실패 사례)
-- **텍스트 라벨은 프롬프트에 직접 내장** — 후반 합성보다 자연스러움. Daniel Reed 재생성 시 검증됨 (가슴 배지 + 데스크 명패 + 배경 3곳 자연 배치)
+- **텍스트 라벨은 프롬프트에 직접 내장** — 후반 합성보다 자연스러움. Daniel 재생성 시 검증됨 (가슴 배지 + 데스크 명패 + 배경 3곳 자연 배치)
 - 스타일 통일 키워드: `3D Pixar-style animated character`, `big expressive eyes`, `cute stylized proportions`, `soft studio lighting`, `high quality 3D render`
-- Daniel Reed 확정 프롬프트 (2026-07-07 생성본):
+- Daniel 확정 프롬프트 (2026-07-07 생성본):
 
 ```
 3D Pixar-style animated character, a confident male news anchor in his early 30s,
@@ -210,7 +211,7 @@ On Air 캐릭터 페르소나 주입 — docs/on_air_bible.md 참조.
 2. VOICE 블록 주입 (5개 파일)
 - 바이블 3.1~3.5의 VOICE 블록을 각 지침 파일에 그대로 삽입:
   agent1_1_kinder.md ← Leo / agent1_2_kids.md ← Ruby /
-  agent1_3_junior.md ← Sunny / agent1_4_times.md ← Daniel Reed /
+  agent1_3_junior.md ← Sunny / agent1_4_times.md ← Daniel /
   agent1_5_junior_m.md ← Erin
 - 삽입 위치: 파일 상단 메타 설명 직후, 본문 작성 규칙 시작 전.
 - 블록 내용은 한 글자도 수정하지 말 것.
