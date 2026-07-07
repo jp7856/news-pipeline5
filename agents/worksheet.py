@@ -23,6 +23,8 @@ SHEET_COLUMNS = [
     "기사(영문)", "기사(한국어)", "요약(한국어)",
     "어휘", "출처", "표절검사", "이미지URL",
     "크로스워드", "워크북Set1", "워크북Set2", "상태", "비용(원)", "서브레벨",
+    "검수경고",  # Agent5 LLM 지적사항 (soft — 상태와 무관, 발행 전 참고)
+    "거부사유",  # hard 게이트 거부 시 게이트별 줄바꿈 구분 ("❌ [게이트] 측정값 / 허용 — 출처")
 ]
 
 STATUS_COL = SHEET_COLUMNS.index("상태") + 1     # 상태 컬럼 위치 (1-based)
@@ -146,8 +148,15 @@ class WorksheetAgent:
                     "image_url": row[11],
                     "sheet_url": sheet_url,
                     "review": (
-                        {"passed": False, "status": "검수거부", "notes": "시트 기록: 검수 거부"}
-                        if len(row) > 15 and row[15].startswith("검수거부") else None
+                        {"passed": False, "status": "검수거부",
+                         "notes": (row[19] if len(row) > 19 and row[19] else "시트 기록: 검수 거부"),
+                         "warnings": row[18] if len(row) > 18 else ""}
+                        if len(row) > 15 and row[15].startswith("검수거부")
+                        else (
+                            {"passed": True, "status": "작성완료", "notes": "",
+                             "warnings": row[18]}
+                            if len(row) > 18 and row[18] else None
+                        )
                     ),
                     "sheet_row": idx + 2,  # 헤더가 1행이므로 데이터는 2행부터
                     "published": len(row) > 15 and row[15].startswith("발행"),
@@ -219,6 +228,10 @@ class WorksheetAgent:
             self._status_label(pkg),
             cost_krw if cost_krw is not None else "",
             pkg.sub_level,
+            (f"⚠ Agent5 지적사항: {pkg.review_result.warnings}"
+             if pkg.review_result and pkg.review_result.warnings else ""),
+            (pkg.review_result.notes
+             if pkg.review_result and not pkg.review_result.passed else ""),
         ]
 
     @staticmethod

@@ -85,6 +85,11 @@ class ArticleResult:
     text_ko: str = ""                  # 한국어 번역 본문
     summary_ko: str = ""               # 한국어 요약 (2~4문장)
 
+    # Phase 1 종료 시점(미리보기 승인 시점)에 미충족이던 게이트 이름들
+    # ("단어수"/"문장길이"/"CEFR"/"표절") — Agent5가 거부 사유의 출처
+    # (Phase 1 소진 진입 vs Phase 2 재측정 이탈)를 구분하는 데 쓴다.
+    phase1_unmet: list = field(default_factory=list)
+
     def __post_init__(self):
         if not self.word_count and self.text:
             self.word_count = len(self.text.split())
@@ -127,11 +132,17 @@ class PlagiarismReport:
 
 @dataclass
 class ReviewResult:
-    """ReviewerAgent의 검수 결과"""
+    """ReviewerAgent의 검수 결과
+
+    passed/status는 hard 게이트(단어수·평균 문장 길이·CEFR·표절 — 코드 재측정)만
+    결정한다. Agent5의 LLM 지침 판정(문체·구조·금지 표현 등)은 거부 사유가 아니라
+    warnings로 분리 — '작성완료' 상태에 경고만 붙는다.
+    """
     passed: bool
     status: ArticleStatus   # APPROVED 또는 REJECTED
-    notes: str = ""         # 판단 이유
-    fix_targets: list = field(default_factory=list)  # 거부 시 재작성 대상: article/translation/crossword/workbook
+    notes: str = ""         # hard 거부 사유 (승인 시 요약)
+    fix_targets: list = field(default_factory=list)  # (자동 재작성 제거 후 미사용 — 수동 재작성용 보존)
+    warnings: str = ""      # Agent5 LLM 지적사항 (soft — 상태에 영향 없음)
 
 
 @dataclass

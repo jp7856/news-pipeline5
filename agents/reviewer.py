@@ -19,16 +19,23 @@ class ReviewerAgent:
         self._client = TrackedClient(api_key=ANTHROPIC_API_KEY)
 
     def run(self, package: ContentPackage) -> ContentPackage:
-        """ContentPackage를 검수하고 review_result를 채워 반환한다."""
+        """ContentPackage를 검수하고 review_result를 채워 반환한다.
+
+        거부(passed=False)는 hard 게이트(단어수·평균 문장 길이·CEFR·표절 —
+        전부 코드 재측정)만 낸다. Agent5 LLM의 지침 판정은 warnings로만 실린다.
+        """
         self._log("[Agent5] 최종 검수 시작")
         try:
-            passed, notes, fix_targets = self._review(package)
+            passed, notes, fix_targets, warnings = self._review(package)
             status = ArticleStatus.APPROVED if passed else ArticleStatus.REJECTED
             package.review_result = ReviewResult(
-                passed=passed, status=status, notes=notes, fix_targets=fix_targets
+                passed=passed, status=status, notes=notes,
+                fix_targets=fix_targets, warnings=warnings,
             )
             label = "승인" if passed else f"거부 ({notes[:60]})"
             self._log(f"[Agent5] {label}")
+            if warnings:
+                self._log(f"[Agent5] ⚠ 지적사항 (경고 — 상태에 영향 없음): {warnings[:100]}")
         except Exception as e:
             self._log(f"[Agent5] 검수 오류: {e}")
             package.review_result = ReviewResult(
@@ -43,7 +50,7 @@ class ReviewerAgent:
 
     FIX_TARGETS = ("article", "translation", "crossword", "workbook")
 
-    def _review(self, pkg: ContentPackage) -> tuple[bool, str, list]:
+    def _review(self, pkg: ContentPackage) -> tuple[bool, str, list, str]:
         article = pkg.article
 
         # 해당 신문(레벨)의 작성 지침 마크다운을 검수 기준으로도 강제한다.
@@ -108,8 +115,8 @@ class ReviewerAgent:
 7. 스팸/광고/부적절한 내용이 없는가?
 8. 토픽과 섹션이 잘 어울리는가? (다소 어색해도 교육적 가치가 있으면 통과){guideline_criterion}
 
-아래 JSON 형식으로만 응답하세요. 거부(approved=false)인 경우 fix_targets에
-재작성이 필요한 부분을 골라 넣으세요 (선택지: "article", "translation", "crossword", "workbook"):
+아래 JSON 형식으로만 응답하세요. 문제가 있으면(approved=false) fix_targets에
+해당 부분을 골라 넣으세요 (선택지: "article", "translation", "crossword", "workbook"):
 {{"approved": true, "reason": "판단 이유를 한 줄로", "fix_targets": []}}"""
 
         data = call_claude_json(
@@ -117,12 +124,16 @@ class ReviewerAgent:
             model=CLAUDE_MODEL, max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )
-        approved = data.get("approved", False)
-        reason = data.get("reason", "")
+        llm_approved = data.get("approved", False)
+        llm_reason = data.get("reason", "")
         fix_targets = [t for t in data.get("fix_targets", []) if t in self.FIX_TARGETS]
 
-        # 코드 레벨 강제: 워드카운트·평균 문장 길이·CEFR이 목표 범위를 벗어나면 LLM 판정과 무관하게 거부.
-        # → _fix_rejected가 이 사유로 기사를 재작성한다(최대 2회).
+        # LLM 지침 판정은 soft — 상태를 바꾸지 않고 warnings로만 분리한다.
+        # (실행마다 판정이 흔들리고, 문체 지적으로 승인 본문을 기계가 재작성하게
+        # 만들던 원인이었음. 사람이 발행 전에 읽고 판단한다.)
+        warnings = "" if llm_approved else llm_reason
+
+        # hard 게이트: 코드가 직접 재측정하는 것만 거부를 낸다.
         from agents.level_agents import cefr_key_for
         from agents.sub_agents.cefr_checker import validate as cefr_validate
         from agents.sub_agents.article_classifier import classify as classify_article
@@ -138,23 +149,44 @@ class ReviewerAgent:
             else:
                 cefr_result = cefr_validate(article.text, cefr_key)
 
+        # 거부 사유는 게이트별 1줄 — "❌ [게이트] 측정값 / 허용범위 — 출처".
+        # 출처: Phase 1 종료 시점에 이미 미충족(article.phase1_unmet)이었는지,
+        # Phase 1은 통과했는데 Phase 2 재측정에서 깨졌는지(미리보기 채팅 수정 등).
+        phase1_unmet = getattr(article, "phase1_unmet", None) or []
+
+        def _prov(gate: str) -> str:
+            return ("Phase 1 게이트 3회 소진 후 미충족 상태로 진입"
+                    if gate in phase1_unmet else "Phase 2 재측정에서 이탈")
+
+        hard_notes: list[str] = []
         if not wc_in_range:
-            approved = False
-            wc_note = f"워드카운트 {article.word_count}단어가 목표 범위({wc_range})를 벗어남 — 범위 안으로 분량 조정 필요"
-            reason = f"{wc_note}. {reason}" if reason else wc_note
-            if "article" not in fix_targets:
-                fix_targets.append("article")
+            hard_notes.append(
+                f"❌ [단어수] {article.word_count}단어 / 허용 {wc_range} — {_prov('단어수')}"
+            )
         if not sl_in_range:
-            approved = False
-            sl_note = f"평균 문장 길이 {avg_sl:.1f}단어가 목표 범위({sl_range})를 벗어남 — 문장 길이 조정 필요(난이도/CEFR)"
-            reason = f"{sl_note}. {reason}" if reason else sl_note
-            if "article" not in fix_targets:
-                fix_targets.append("article")
+            hard_notes.append(
+                f"❌ [문장길이] 평균 {avg_sl:.1f}단어 / 허용 {sl_range} — {_prov('문장길이')}"
+            )
         if cefr_result and not cefr_result.passed:
-            approved = False
-            cefr_note = f"CEFR 난이도 위반({'; '.join(cefr_result.violations[:2])})"
-            reason = f"{cefr_note}. {reason}" if reason else cefr_note
+            for v in cefr_result.violations[:3]:
+                hard_notes.append(f"❌ [CEFR] {v} — {_prov('CEFR')}")
+        if not pkg.plagiarism_report.passed:
+            failed_items = [
+                f"{k}: {v.get('note', '')[:80]}"
+                for k, v in pkg.plagiarism_report.checklist.items()
+                if not v.get("pass")
+            ]
+            detail = " · ".join(failed_items[:3]) or "세부 항목 없음"
+            hard_notes.append(
+                f"❌ [표절] 경고 {len(failed_items)}건 — {detail} — {_prov('표절')}"
+            )
+
+        passed = not hard_notes
+        if passed:
+            notes = llm_reason if llm_approved else "hard 게이트(단어수·문장길이·CEFR·표절) 통과 — 지적사항은 경고 참조"
+        else:
+            notes = "\n".join(hard_notes)
             if "article" not in fix_targets:
                 fix_targets.append("article")
 
-        return approved, reason, fix_targets
+        return passed, notes, fix_targets, warnings

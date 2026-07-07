@@ -467,6 +467,7 @@ def _serialize(pkg: ContentPackage, sheet_url: str = "") -> dict:
             "passed": review.passed,
             "status": review.status.value,
             "notes": review.notes,
+            "warnings": review.warnings,
         } if review else None,
     }
 

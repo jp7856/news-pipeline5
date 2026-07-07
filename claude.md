@@ -23,9 +23,10 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
          → Writer → Plagiarism (실패 시 실패 항목 피드백으로 최대 3회 재작성, 걸린 항목 로그)
          → FactCheck (출처 대조 사실 점검 — 불일치 시 1회 재작성 + 표절 재검사)
          → 초안 미리보기 + 대화형 AI 수정/질문 (Reviser 채팅, 수정 시 표절 재검사)
-         → [이후 작업 진행] → [Phase 2] Editor(자동반영) → Crossword + Workbook
+         → [이후 작업 진행] → [Phase 2] Editor(교정 제안만 — 본문 반영 안 함) → Crossword + Workbook
          → Translator → ImageFinder(기존 이미지 제외 + 후보 중 선택 — 매체별 변별력)
-         → Reviewer(검수, 거부 시 fix_targets만 재작성 후 재검수 최대 2회)
+         → Reviewer(판정만 — 자동 재작성 없음. hard 게이트[단어수·문장길이·CEFR·표절]만 거부,
+            LLM 지침 지적은 '검수경고' 컬럼으로 '작성완료'에 병기)
          → Worksheet(시트 저장 — 통과 '작성완료' / 최종 거부 '검수거부' / 검수 실패 '검수오류')
          → [발행하기] → 시트 상태 '발행완료' → /api/published → ne-times-site5 노출
 중단: Running 배지 클릭 (단계 사이 PipelineCancelled)
@@ -39,7 +40,7 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
 4. 표절 자동 재작성 루프 (최대 3회, 실패 항목 구체적 피드백)
 5. AI 수정 후 표절 재검사
 6. 출처: Claude 웹 검색 (ALLOWED_DOMAINS 화이트리스트, 한국어 토픽 영어 번역 검색)
-7. 교정 자동 반영, 번역 마커 방식, 이미지 폴백 체인
+7. 교정 제안 표시(본문 반영 안 함 — Phase 1 승인 본문이 글자 그대로 최종본), 번역 마커 방식, 이미지 폴백 체인
 8. 히스토리 영구 저장 (구글 시트 로드), 발행 기능 (상태 컬럼)
 9. 월별 누적 사용액 — 헤더 배지(이번달 NNN원·N건) + 클릭 시 가로 막대 그래프 모달
    - /api/usage: current_month_krw / monthly[] 반환, 매월 1일 자동 초기화
@@ -90,6 +91,8 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼 + 
 - 시트는 v3와 v4가 같은 것을 공유 중 — 분리 필요 시 새 시트 + 서비스 계정 공유 + SHEET_ID 교체
 - ne-times-site5는 Railway /api/published를 직접 호출 — articles.json 정적 파일 방식 아님
 - ne-times-site(구 사이트)는 의도적으로 연결 해제됨 — 복원하지 말 것
+- ⚠ Phase 2는 본문을 절대 바꾸지 않는다 (2026-07-07 설계 확정): 미리보기 승인본 = 최종본.
+  Editor 자동 반영·검수 거부 자동 재작성을 되살리지 말 것. 거부는 hard 게이트만, LLM 지적은 검수경고.
 - ⚠ run_vocab_review.py / vocab_monitor.py / analytical_seed.py 등 어휘 리뷰 계열 수정 시:
   push 후 `railway up --service vocab-review-cron` 필요 (cron 서비스는 푸시 자동 배포 안 됨 — Railway 설계.
   branch trigger는 master로 연결돼 있으나 cron 스케줄 서비스에는 무효 — 2026-07-02 대조 실험으로 확인)

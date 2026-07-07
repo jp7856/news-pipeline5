@@ -150,6 +150,10 @@
     .review-status{font-size:.8rem;color:#cbd5e1;margin-top:2px}
     .review-notes{background:#0f172a;border-radius:8px;padding:16px;font-size:.9rem;line-height:1.7;color:#e2e8f0}
     .review-notes h4{font-size:.75rem;color:#94a3b8;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+    .review-warnings{background:#422006;border:1px solid #f59e0b;border-radius:8px;padding:16px;font-size:.9rem;line-height:1.7;color:#fde68a;margin-bottom:14px}
+    .review-warnings h4{font-size:.78rem;color:#fbbf24;margin-bottom:8px;font-weight:700}
+    .reject-line{padding:4px 0;border-bottom:1px solid #1e293b}
+    .reject-line:last-child{border-bottom:none}
 
     .hidden{display:none}
 
@@ -1048,6 +1052,11 @@
       const cls = rv.passed ? "approved" : "rejected";
       const icon = rv.passed ? "✅" : "⛔";
       const title = rv.passed ? "승인됨" : "거부됨";
+      const warningsHtml = rv.warnings ? `
+        <div class="review-warnings">
+          <h4>⚠ Agent5 지적사항 (경고 — 발행 전 확인)</h4>
+          ${esc(rv.warnings)}
+        </div>` : "";
       panel.innerHTML = `
         <h2>최종 검수 (Agent 5)</h2>
         <div class="review-verdict ${cls}">
@@ -1057,9 +1066,12 @@
             <div class="review-status">상태: ${esc(rv.status)}</div>
           </div>
         </div>
+        ${warningsHtml}
         <div class="review-notes">
-          <h4>판단 이유</h4>
-          ${esc(rv.notes) || "(없음)"}
+          <h4>${rv.passed ? "판단 이유" : "❌ 거부 사유 (게이트별)"}</h4>
+          ${rv.passed
+            ? (esc(rv.notes) || "(없음)")
+            : (esc(rv.notes) || "(없음)").split("\n").map(l => `<div class="reject-line">${l}</div>`).join("")}
         </div>`;
     }
 

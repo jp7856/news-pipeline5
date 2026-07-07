@@ -266,40 +266,44 @@ class ContentProducerAgent:
                     f"미리보기에서 확인 후 AI 수정 채팅으로 보완해주세요"
                 )
 
+        # ── Phase 1 종료 시점 미충족 게이트 기록 ─────────────────────────
+        # Agent5가 거부 사유의 출처를 구분하는 근거:
+        #   여기 기록됨   → "Phase 1 게이트 3회 소진 후 미충족 상태로 진입"
+        #   여기 없음     → "Phase 2 재측정에서 이탈" (미리보기 채팅 수정 등)
+        final_unmet: list[str] = []
+        if not self._writer._word_count_in_range(article.word_count, wc_range):
+            final_unmet.append("단어수")
+        _final_sl = self._writer._avg_sentence_length(article.text)
+        if not self._writer._sentence_length_in_range(_final_sl, sl_range):
+            final_unmet.append("문장길이")
+        if cefr_key is not None:
+            _cls = classify_article(article.text, cefr_key)
+            if not _cls.skip_cefr:
+                _cv = cefr_validate(article.text, cefr_key)
+                if _cv is not None and not _cv.passed:
+                    final_unmet.append("CEFR")
+        if not plagiarism_report.passed:
+            final_unmet.append("표절")
+        article.phase1_unmet = final_unmet
+
         return article, plagiarism_report
 
     def produce_extras(
         self, topic: str, level: Level, section: Section, article, plagiarism_report,
         sub_level: str = "L2",
     ) -> ContentPackage:
-        """Phase 2 — 교정 + 크로스워드 + 워크북을 수행하고 패키지를 완성한다."""
-        # ── Step 3: 교정 ──────────────────────────────────────────
-        editing_suggestions = self._editor.run(article, level)
+        """Phase 2 — 교정 제안 + 크로스워드 + 워크북을 수행하고 패키지를 완성한다.
 
-        # 교정 제안을 본문에 자동 반영 — wc 범위를 이탈시키는 교정은 건너뜀
-        _cfg, _ = WriterAgent._merge_config(level, sub_level)
-        _wc_range = _cfg.get("word_count_range", "")
-        applied = skipped = 0
-        for s in editing_suggestions:
-            if not (s.original and s.original in article.text):
-                continue
-            patched = article.text.replace(s.original, s.suggestion, 1)
-            new_wc = len(patched.split())
-            if _wc_range and not WriterAgent._word_count_in_range(new_wc, _wc_range):
-                self._log(
-                    f"[{self.AGENT_LABEL}] 교정 건너뜀 — 반영 시 {new_wc}단어로 "
-                    f"범위({_wc_range}) 이탈"
-                )
-                skipped += 1
-                continue
-            article.text = patched
-            applied += 1
-        if applied or skipped:
-            article.word_count = len(article.text.split())
-            msg = f"[{self.AGENT_LABEL}] 교정 {applied}건 본문 반영"
-            if skipped:
-                msg += f" ({skipped}건 wc 범위 보호로 건너뜀)"
-            self._log(msg)
+        Phase 1 미리보기에서 승인한 본문은 여기서 절대 바꾸지 않는다 —
+        승인본 = 최종본. Editor는 제안만 하고(원 설계), 반영 여부는 사람이 정한다.
+        """
+        # ── Step 3: 교정 제안 (본문 반영 안 함) ──────────────────────
+        editing_suggestions = self._editor.run(article, level)
+        if editing_suggestions:
+            self._log(
+                f"[{self.AGENT_LABEL}] 교정 제안 {len(editing_suggestions)}건 — "
+                f"반영 안 함 (승인 본문 유지, 결과 화면에서 확인)"
+            )
 
         # ── Step 4 & 5: 크로스워드 + 워크북 (병렬 실행 — 서로 독립적) ──
         self._cancel_check()

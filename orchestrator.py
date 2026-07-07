@@ -20,7 +20,7 @@ from agents.translator import TranslatorAgent
 from agents.image_finder import ImageFinderAgent
 from agents.worksheet import WorksheetAgent
 from agents.reviewer import ReviewerAgent
-from models import ArticleStatus, ContentPackage, Level, Section
+from models import ContentPackage, Level, Section
 
 logger = logging.getLogger(__name__)
 
@@ -127,28 +127,17 @@ class Orchestrator:
         image_finder = ImageFinderAgent(log_callback=self._log)
         package = image_finder.run(package, exclude_urls=self.used_image_urls)
 
-        # ── Agent 5: 최종 검수 (거부 시 자동 재작성, 최대 2회) ────
+        # ── Agent 5: 최종 검수 (판정만 — 자동 재작성 없음) ────────
+        # 승인 본문은 기계가 다시 바꾸지 않는다. hard 게이트 거부 시 거부 사유와
+        # 함께 저장하고 종료 — 수정은 사람이 한다. (_fix_rejected는 추후 수동
+        # 재작성 기능용으로 보존, 호출만 끊음)
         self._check_cancel()
         reviewer = ReviewerAgent(log_callback=self._log)
         package = reviewer.run(package)
 
-        max_retries = 2
-        attempt = 0
-        while (
-            package.review_result is not None
-            and not package.review_result.passed
-            and package.review_result.status == ArticleStatus.REJECTED  # 검수 오류는 재작성 대상 아님
-            and attempt < max_retries
-        ):
-            attempt += 1
-            self._check_cancel()
-            package = self._fix_rejected(package, producer, translator, attempt, max_retries)
-            self._check_cancel()
-            package = reviewer.run(package)
-
         review = package.review_result
-        if review is not None and not review.passed and attempt >= max_retries:
-            self._log(f"[Phase2] 재작성 {max_retries}회 후에도 검수 거부 — '검수거부' 상태로 저장합니다")
+        if review is not None and not review.passed:
+            self._log(f"[Phase2] 검수 거부 — 재작성 없이 '검수거부' 상태로 저장합니다 (수정은 AI 수정 채팅으로)")
 
         # ── Agent 4: Google Sheets 저장 (검수 결과 반영) ──────────
         self._check_cancel()
@@ -173,7 +162,16 @@ class Orchestrator:
         self._log(f"    Image      : {'발견' if package.image_url else '없음'}")
         self._log(f"    Sheets     : {'저장완료' if self._sheet_url else '저장안됨'}")
         review = package.review_result
-        self._log(f"    Review     : {'승인' if review and review.passed else '거부'} — {review.notes if review else ''}")
+        if review and review.passed:
+            self._log(f"    Review     : 승인 — {review.notes}")
+        elif review:
+            self._log("    Review     : 거부 — 게이트별 사유:")
+            for line in review.notes.splitlines():
+                self._log(f"      {line}")
+        else:
+            self._log("    Review     : 거부 — (검수 결과 없음)")
+        if review and review.warnings:
+            self._log(f"    ⚠ Agent5 지적사항: {review.warnings}")
         self._log(f"    Cost       : {usage_summary()}")
 
         return package, self._sheet_url
