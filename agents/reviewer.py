@@ -155,7 +155,7 @@ class ReviewerAgent:
         phase1_unmet = getattr(article, "phase1_unmet", None) or []
 
         def _prov(gate: str) -> str:
-            return ("Phase 1 게이트 3회 소진 후 미충족 상태로 진입"
+            return ("Phase 1 재작성 소진(Writer 3회+Reviser 2회) 후 미충족 상태로 진입"
                     if gate in phase1_unmet else "Phase 2 재측정에서 이탈")
 
         hard_notes: list[str] = []

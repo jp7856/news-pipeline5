@@ -90,6 +90,9 @@ class ArticleResult:
     # (Phase 1 소진 진입 vs Phase 2 재측정 이탈)를 구분하는 데 쓴다.
     phase1_unmet: list = field(default_factory=list)
 
+    # Phase 1 수정 이력 (미리보기 표시용): "Writer 2회 + Reviser 1회 수정 거침"
+    revision_history: str = ""
+
     def __post_init__(self):
         if not self.word_count and self.text:
             self.word_count = len(self.text.split())

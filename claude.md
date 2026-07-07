@@ -22,7 +22,9 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
          → [Phase 1] SourceFinder(웹검색, 도메인 화이트리스트, 최신 기사 우선·발행일 수집)
          → Writer → Plagiarism (실패 시 실패 항목 피드백으로 최대 3회 재작성, 걸린 항목 로그)
          → FactCheck (출처 대조 사실 점검 — 불일치 시 1회 재작성 + 표절 재검사)
-         → 초안 미리보기 + 대화형 AI 수정/질문 (Reviser 채팅, 수정 시 표절 재검사)
+         → 게이트 미충족 잔존 시 Reviser 정밀 수정 (최대 2회 — 구조화 사유["[게이트] 측정값/허용 — 표적 지시"]
+            투입, 수정 시 표절 재검사. 그래도 미충족이면 미리보기에 ❌ 표시하고 사람이 채팅으로 해결)
+         → 초안 미리보기(Writer N회+Reviser N회 수정 이력·미충족 게이트 표시) + 대화형 AI 수정/질문
          → [이후 작업 진행] → [Phase 2] Editor(교정 제안만 — 본문 반영 안 함) → Crossword + Workbook
          → Translator → ImageFinder(기존 이미지 제외 + 후보 중 선택 — 매체별 변별력)
          → Reviewer(판정만 — 자동 재작성 없음. hard 게이트[단어수·문장길이·CEFR·표절]만 거부,

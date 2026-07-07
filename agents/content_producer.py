@@ -266,27 +266,137 @@ class ContentProducerAgent:
                     f"미리보기에서 확인 후 AI 수정 채팅으로 보완해주세요"
                 )
 
-        # ── Phase 1 종료 시점 미충족 게이트 기록 ─────────────────────────
+        # ── Step 3.5: 게이트 미충족 잔존 시 Reviser 정밀 수정 (최대 2회) ──
+        # Writer 3회로 못 맞춘 것을 승인 전에 지시 기반으로 고친다 —
+        # Phase 2에서는 본문을 절대 바꾸지 않으므로, 자동 수정은 여기가 마지막.
+        writer_rewrites = attempt  # 게이트 루프 재작성 횟수 (사실점검 재작성은 별도)
+        unmet = self._measure_gates(
+            article, plagiarism_report, wc_range, sl_range, cefr_key, level
+        )
+        reviser_attempts = 0
+        if unmet:
+            article, plagiarism_report, reviser_attempts, unmet = self._refine_with_reviser(
+                article, plagiarism_report, level, sub_level,
+                wc_range, sl_range, cefr_key, unmet, writer_rewrites,
+            )
+
+        # ── Phase 1 종료 시점 미충족 게이트·수정 이력 기록 ─────────────────
         # Agent5가 거부 사유의 출처를 구분하는 근거:
-        #   여기 기록됨   → "Phase 1 게이트 3회 소진 후 미충족 상태로 진입"
+        #   여기 기록됨   → "Phase 1 재작성 소진 후 미충족 상태로 진입"
         #   여기 없음     → "Phase 2 재측정에서 이탈" (미리보기 채팅 수정 등)
-        final_unmet: list[str] = []
-        if not self._writer._word_count_in_range(article.word_count, wc_range):
-            final_unmet.append("단어수")
-        _final_sl = self._writer._avg_sentence_length(article.text)
-        if not self._writer._sentence_length_in_range(_final_sl, sl_range):
-            final_unmet.append("문장길이")
-        if cefr_key is not None:
-            _cls = classify_article(article.text, cefr_key)
-            if not _cls.skip_cefr:
-                _cv = cefr_validate(article.text, cefr_key)
-                if _cv is not None and not _cv.passed:
-                    final_unmet.append("CEFR")
-        if not plagiarism_report.passed:
-            final_unmet.append("표절")
-        article.phase1_unmet = final_unmet
+        article.phase1_unmet = [g for g, _ in unmet]
+        article.revision_history = (
+            f"Writer {writer_rewrites}회 + Reviser {reviser_attempts}회 수정 거침"
+            if (writer_rewrites or reviser_attempts) else ""
+        )
+        if unmet:
+            self._log(
+                f"[{self.AGENT_LABEL}] ❌ 미충족 게이트 잔존({', '.join(g for g, _ in unmet)}) — "
+                f"미리보기에서 AI 수정 채팅으로 해결해주세요"
+            )
 
         return article, plagiarism_report
+
+    # ------------------------------------------------------------------
+    # Phase 1 게이트 측정·Reviser 정밀 수정
+    # ------------------------------------------------------------------
+
+    def _measure_gates(
+        self, article, plagiarism_report, wc_range: str, sl_range: str, cefr_key, level,
+    ) -> list[tuple[str, str]]:
+        """hard 게이트를 재측정해 미충족 목록을 반환한다.
+
+        반환: [(게이트명, "[게이트] 측정값 / 허용범위 — 표적 지시"), ...]
+        지시문은 Reviser REVISION REQUEST에 그대로 들어간다.
+        """
+        from agents.sub_agents.utils import sl_aim_hint
+        unmet: list[tuple[str, str]] = []
+
+        wc = article.word_count
+        if not self._writer._word_count_in_range(wc, wc_range):
+            _nums = re.findall(r"\d+", wc_range)
+            over = bool(_nums) and wc > int(_nums[-1])
+            action = ("trim redundant phrases and minor details"
+                      if over else "expand with relevant, factual detail")
+            unmet.append(("단어수", f"[단어수] {wc}단어 / 허용 {wc_range} — {action} to fall within {wc_range} words"))
+
+        avg_sl = self._writer._avg_sentence_length(article.text)
+        if not self._writer._sentence_length_in_range(avg_sl, sl_range):
+            action = ("split the 2-3 longest sentences"
+                      if self._sl_over(avg_sl, sl_range) else "combine short, choppy sentences")
+            unmet.append((
+                "문장길이",
+                f"[문장길이] 평균 {avg_sl:.1f}단어 / 허용 {sl_range} — {action}; "
+                f"aim for {sl_aim_hint(sl_range, level.value)}",
+            ))
+
+        if cefr_key is not None:
+            from agents.sub_agents.cefr_checker import validate as _cefr_validate
+            from agents.sub_agents.article_classifier import classify as _classify
+            _cls = _classify(article.text, cefr_key)
+            if not _cls.skip_cefr:
+                _cv = _cefr_validate(article.text, cefr_key)
+                if _cv is not None and not _cv.passed:
+                    unmet.append((
+                        "CEFR",
+                        f"[CEFR] {'; '.join(_cv.violations[:2])} — simplify vocabulary and "
+                        f"sentence structure to the target level",
+                    ))
+
+        if not plagiarism_report.passed:
+            failed = [k for k, v in plagiarism_report.checklist.items() if not v.get("pass")]
+            unmet.append((
+                "표절",
+                f"[표절] 경고 {len(failed)}건 ({', '.join(failed[:3])}) — rephrase the "
+                f"flagged passages in fully original wording",
+            ))
+        return unmet
+
+    def _refine_with_reviser(
+        self, article, plagiarism_report, level, sub_level: str,
+        wc_range: str, sl_range: str, cefr_key, unmet: list, writer_rewrites: int,
+        max_attempts: int = 2,
+    ):
+        """게이트 미충족 잔존분을 Reviser로 정밀 수정한다 (최대 2회).
+
+        본문이 바뀌면 표절 재검사. 반환: (article, plagiarism_report, 시도횟수, 최종 unmet)
+        """
+        from agents.sub_agents.reviser import ReviserAgent
+        reviser = ReviserAgent(log_callback=self._log)
+        attempts = 0
+        while unmet and attempts < max_attempts:
+            attempts += 1
+            self._cancel_check()
+            self._log(
+                f"[{self.AGENT_LABEL}] 게이트 미충족 잔존 — Reviser 정밀 수정 "
+                f"{attempts}/{max_attempts}회 ({', '.join(g for g, _ in unmet)})"
+            )
+            reasons = "\n".join(line for _, line in unmet)
+            instruction = (
+                f"REVISION REQUEST: The article failed these hard gates after "
+                f"{writer_rewrites} Writer rewrites. Fix EVERY item below — this is "
+                f"the top priority and is non-negotiable:\n{reasons}\n\n"
+                f"While fixing, keep the facts, sources, and reading level. "
+                f"Output the full revised article."
+            )
+            article2, _reply, changed = reviser.run(
+                article, instruction, level,
+                plagiarism_report=plagiarism_report, sub_level=sub_level,
+            )
+            if not changed:
+                self._log(f"[{self.AGENT_LABEL}] Reviser가 본문을 수정하지 않음 — 정밀 수정 중단")
+                break
+            article = article2
+            plagiarism_report = self._plagcheck.run(article)  # 수정 후 표절 재검사 원칙
+            unmet = self._measure_gates(
+                article, plagiarism_report, wc_range, sl_range, cefr_key, level
+            )
+        if attempts:
+            self._log(
+                f"[{self.AGENT_LABEL}] Reviser 정밀 수정 종료 — "
+                f"{'게이트 전부 충족 ✓' if not unmet else '미충족 잔존: ' + ', '.join(g for g, _ in unmet)}"
+            )
+        return article, plagiarism_report, attempts, unmet
 
     def produce_extras(
         self, topic: str, level: Level, section: Section, article, plagiarism_report,

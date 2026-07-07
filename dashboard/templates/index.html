@@ -468,11 +468,11 @@
     });
 
     // Phase 1 완료 — 기사 미리보기 + 계속 버튼 표시 (AI 수정 후에도 호출됨)
-    socket.on("article_ready", ({article, plagiarism_passed, level, section, sub_level}) => {
+    socket.on("article_ready", ({article, plagiarism_passed, level, section, sub_level, unmet_gates, revision_history}) => {
       _clientRunning = false;
       setRunning(false);
       setReviseBusy(false);
-      renderArticleOnly(article, plagiarism_passed, level, section, sub_level);
+      renderArticleOnly(article, plagiarism_passed, level, section, sub_level, unmet_gates, revision_history);
       const bar = document.getElementById("continue-bar");
       bar.classList.add("show");
       bar.scrollIntoView({behavior: "smooth", block: "start"});
@@ -595,7 +595,7 @@
       document.getElementById("continue-bar").classList.remove("show");
     }
 
-    function renderArticleOnly(article, plagiarismPassed, level, section, subLevel) {
+    function renderArticleOnly(article, plagiarismPassed, level, section, subLevel, unmetGates, revisionHistory) {
       document.getElementById("result-area").classList.remove("hidden");
       // Article 탭만 채우고 활성화
       document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -603,6 +603,8 @@
       document.querySelector('[data-tab="article"]').classList.add("active");
       document.getElementById("panel-article").classList.add("active");
 
+      const unmetHtml = (unmetGates || []).map(g => `<span class="stat fail">❌ ${esc(g)} 미충족</span>`).join("");
+      const historyHtml = revisionHistory ? `<span class="stat">${esc(revisionHistory)}</span>` : "";
       document.getElementById("panel-article").innerHTML = `
         <h2>Article (초안)</h2>
         <div style="margin-bottom:10px">
@@ -611,7 +613,9 @@
           <span class="stat">${article.word_count} words</span>
           ${cefrStat(level, subLevel)}
           <span class="stat ${plagiarismPassed ? 'pass' : 'fail'}">${plagiarismPassed ? 'PLAGIARISM PASS' : 'PLAGIARISM WARNING'}</span>
+          ${historyHtml}${unmetHtml}
         </div>
+        ${(unmetGates || []).length ? `<div class="review-warnings" style="margin-bottom:12px"><h4>❌ 게이트 미충족 — 아래 채팅으로 수정 후 진행 권장</h4>자동 수정(Writer·Reviser)으로도 해소되지 않았습니다: ${esc((unmetGates||[]).join(", "))}</div>` : ""}
         <div class="article-text">${esc(article.text)}</div>
         <h2 style="margin-top:20px">Vocabulary <span class="stat" style="font-size:.72rem">${article.vocabulary.length} WORDS</span></h2>
         <div>${vocabPillHtml(article.vocabulary)}</div>

@@ -370,6 +370,8 @@ def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url
             "level": level.value,
             "section": section.value,
             "sub_level": state.get("sub_level", ""),  # 랜덤 배정된 값
+            "unmet_gates": getattr(article, "phase1_unmet", []) or [],
+            "revision_history": getattr(article, "revision_history", ""),
         }, to=sid)
     except PipelineCancelled:
         socketio.emit("log", {"message": "=== 사용자에 의해 중단됨 ==="}, to=sid)
