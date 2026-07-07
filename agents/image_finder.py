@@ -37,6 +37,11 @@ class ImageFinderAgent:
     def run(self, package: ContentPackage, exclude_urls: list[str] | None = None) -> ContentPackage:
         """기사 이미지를 찾는다. exclude_urls(기존 기사들이 쓴 이미지)는 제외한다."""
         self._log("[Agent3] 이미지 탐색 시작")
+        if not UNSPLASH_ACCESS_KEY:
+            # 키가 없으면 검색어 생성(LLM 호출)부터가 헛수고 — 즉시 스킵.
+            # 이미지 없음은 파이프라인 진행에 지장 없음 (기사 생성이 막히면 안 됨).
+            self._log("[Agent3] ⚠ UNSPLASH_ACCESS_KEY 미설정 — 이미지 검색 건너뜀 (기사 생성은 계속)")
+            return package
         exclude = {self._normalize(u) for u in (exclude_urls or []) if u}
         if exclude:
             self._log(f"[Agent3] 기존 기사 이미지 {len(exclude)}건 제외 목록 적용")

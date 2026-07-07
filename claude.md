@@ -75,7 +75,7 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼 + 
 - ANTHROPIC_API_KEY ⚠️ 설정 필요
 - GOOGLE_SHEETS_CREDENTIALS_JSON ⚠️ 설정 필요 (JSON 내용 전체)
 - GOOGLE_SHEET_ID ⚠️ 설정 필요 = v5 전용 새 시트 권장 (v4까지는 1jA2lU16...을 v3와 공유)
-- UNSPLASH_ACCESS_KEY ⚪ (미설정 시 코드 기본값 사용)
+- UNSPLASH_ACCESS_KEY ⚪ (미설정 시 이미지 검색만 건너뜀 — 기사 생성은 진행. 코드 기본값 제거됨, 2026-07-06)
 - GITHUB_TOKEN — **불필요** (ne-times-site5는 Railway API 직접 호출)
 - 점검: GET /api/health
 
