@@ -57,6 +57,8 @@ Sub-level differences:
 - L2 (headline / feature): 5–8 paragraphs with fuller background, at least one quote,
   and a closing paragraph of significance or outlook. (260–300 words.)
 - L3 (in-depth report): SAME length and difficulty band as L2 (~280 words, B2) — the
-  difference is STRUCTURE, not length: 7–10 shorter paragraphs covering multiple
-  perspectives or stakeholders (government, experts, citizens), causes and consequences,
-  and broader implications; reported speech and analyst commentary throughout. (280–310 words.)
+  difference is STRUCTURE, not length: 7–9 short paragraphs (typically 8) — budget each
+  paragraph at about 2 sentences and 30–40 words (sentences ~15–20 words each), so the
+  total lands near 285 — covering multiple perspectives or stakeholders (government,
+  experts, citizens), causes and consequences, and broader implications; reported speech
+  and analyst commentary throughout. (280–310 words.)

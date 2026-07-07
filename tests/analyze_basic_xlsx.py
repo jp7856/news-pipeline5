@@ -17,6 +17,7 @@ import openpyxl
 NON_PROSE_HINTS = (
     "photo news", "did you know", "debate", "debating", "speak out",
     "talk talk", "think about it", "advice", "quiz", "puzzle",
+    "voa",  # VoA Broadcast News — 외부 방송 스크립트 (지침상 생성·검증 대상 아님, 2026-07 L3 분석에서 오염 발견)
 )
 
 
