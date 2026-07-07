@@ -1,6 +1,6 @@
 # On Air — 캐릭터 바이블
 
-> NE Times 5개 발행물의 필자 캐릭터 IP 원본 문서.
+> JP Times 5개 발행물의 필자 캐릭터 IP 원본 문서.
 > 모든 파생물(지침 파일 VOICE 블록, 사이트 프로필, 이미지 재생성 프롬프트, 굿즈·마케팅)은 이 문서를 단일 소스로 참조한다.
 > 확정일: 2026-07-07 / 저장 위치 권장: news-pipeline5/docs/
 
@@ -21,7 +21,7 @@
 | 4 | Erin | JUNIOR_M | 1-5 | 20대 중반 |
 | 5 | Daniel | TIMES | 1-4 | 30대 초중반 |
 
-- 표기: 로고·대문자 맥락 "ON AIR" / 문장 내 "On Air" / 발행물 조합 시 "On Air × NE Times"
+- 표기: 로고·대문자 맥락 "ON AIR" / 문장 내 "On Air" / 발행물 조합 시 "On Air × JP Times"
 - 시각 시그니처: 방송 스튜디오의 빨간 ON AIR 램프
 - 관계 설정: Leo는 모두의 막내, Ruby는 Leo의 선배, Sunny는 현장 담당, Erin은 학생 리포터와 앵커 사이의 다리, Daniel은 팀의 선장이자 막내들이 동경하는 자리
 

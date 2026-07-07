@@ -87,7 +87,7 @@ class ReviewerAgent:
                 '위반이 아닙니다(없는 것이 기본 상태).)'
             )
 
-        prompt = f"""아래 NE Times 교육용 기사 패키지를 검수해주세요.
+        prompt = f"""아래 JP Times 교육용 기사 패키지를 검수해주세요.
 
 레벨: {pkg.level.value}
 섹션: {pkg.section.value}

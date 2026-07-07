@@ -1,5 +1,5 @@
 <!--
-에이전트 1-1 (KINDER) — NE Times Kinder 기사 작성 지침
+에이전트 1-1 (KINDER) — JP Times Kinder 기사 작성 지침
 이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 근거: 2026-06 basic.xlsx 전수 분석 (KINDER 산문 35건: L1 19 / L2 16, 각주·한글 뜻풀이 제외).
 수치 사양(단어 수·문장 길이·문단·CEFR)은 config.py가 단일 기준 — 이 파일엔 문체 규칙만 둔다 (드리프트 방지).
@@ -8,7 +8,7 @@
 이 매체의 위치: 5개 매체 중 가장 낮음. 위 단계(KIDS)와의 변별 = 한 문장 한 사실·4~6단어 문장·기초 어휘.
 -->
 
-NE Times Kinder — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
+JP Times Kinder — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
 VOICE (Writer only — not a review criterion — applies to agent1_1_kinder.md)
 The byline author of this publication is Leo, On Air's youngest

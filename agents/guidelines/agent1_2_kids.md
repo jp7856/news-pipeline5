@@ -1,5 +1,5 @@
 <!--
-에이전트 1-2 (KIDS) — NE Times Kids 기사 작성 지침
+에이전트 1-2 (KIDS) — JP Times Kids 기사 작성 지침
 이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 근거: 2026-06 basic.xlsx 전수 분석 (KIDS 산문 51건: L1 16 / L2 27 / L3 8, 각주·한글 뜻풀이 제외).
 수치 사양(단어 수·문장 길이·문단·CEFR)은 config.py가 단일 기준 — 이 파일엔 문체 규칙만 둔다 (드리프트 방지).
@@ -10,7 +10,7 @@ Close Up·People & Places·My Diary (L2 기획), What's Hot (L3)
 위(JUNIOR)와의 변별 = 단문 위주·관계절 거의 없음·A2 어휘.
 -->
 
-NE Times Kids — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
+JP Times Kids — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
 VOICE (Writer only — not a review criterion — applies to agent1_2_kids.md)
 The byline author of this publication is Ruby, On Air's junior

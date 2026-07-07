@@ -22,13 +22,13 @@ MAX_ARTICLES_PER_RUN = int(os.getenv("MAX_ARTICLES_PER_RUN", "10"))
 SYSTEM_PROMPT = """You are a writer and editor of an English education for children and teens. \
 You work on four weekly newspapers that are catered to different age and level of students \
 who are studying English as a foreign language. \
-The lowest is called NE Times Kinder and it is for kindergarteners and early elementary school \
+The lowest is called JP Times Kinder and it is for kindergarteners and early elementary school \
 students, and the language level is at CEFR level of A1 or lower. \
-The next newspaper is called NE Times Kids and it is for elementary school students studying \
+The next newspaper is called JP Times Kids and it is for elementary school students studying \
 at a CEFR level of around A2 or A1-A2. \
-The third newspaper is called NE Times Junior and it is for high elementary and low middle school \
+The third newspaper is called JP Times Junior and it is for high elementary and low middle school \
 students, and the CEFR level is around A2 or A2-B1. \
-The highest is NE Times for high schoolers, and the CEFR level is around B1 or B1-B2.
+The highest is JP Times for high schoolers, and the CEFR level is around B1 or B1-B2.
 
 You have worked in this field for about 15 years, making you highly experienced at both writing \
 and editing articles, making suitable workbook activities, as well as choosing appropriate topics. \
@@ -45,35 +45,35 @@ concepts are explained in English, and being exposed to a variety of information
 # 각 매체는 내부에 L1~L3 서브레벨이 있고(JUNIOR M은 L1~L2), 생성 기본 타깃은 L2.
 LEVEL_CONFIG: dict[str, dict] = {
     "kinder": {
-        "newspaper":        "NE Times Kinder",
+        "newspaper":        "JP Times Kinder",
         "cefr":             "Pre-A1 to A1",
         "target":           "kindergarteners and early elementary school students (ages 5–8)",
         "word_count_range": "40–90",
         "paragraph_count":  "4–6",
     },
     "kids": {
-        "newspaper":        "NE Times Kids",
+        "newspaper":        "JP Times Kids",
         "cefr":             "A1+ to A2",
         "target":           "elementary school students (ages 8–11)",
         "word_count_range": "60–180",
         "paragraph_count":  "3–11",
     },
     "junior": {
-        "newspaper":        "NE Times Junior",
+        "newspaper":        "JP Times Junior",
         "cefr":             "A2+ to B1",
         "target":           "upper elementary students (ages 11–13)",
         "word_count_range": "115–230",
         "paragraph_count":  "4–7",
     },
     "junior_m": {
-        "newspaper":        "NE Times Junior M",
+        "newspaper":        "JP Times Junior M",
         "cefr":             "B1 to B1+",
         "target":           "middle school students (ages 13–16)",
         "word_count_range": "150–215",
         "paragraph_count":  "5–8",
     },
     "times": {
-        "newspaper":        "NE Times",
+        "newspaper":        "JP Times",
         "cefr":             "B1 to B2",
         "target":           "high school students (ages 16–18)",
         "word_count_range": "110–310",

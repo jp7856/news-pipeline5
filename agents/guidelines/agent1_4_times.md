@@ -1,5 +1,5 @@
 <!--
-에이전트 1-4 (TIMES) — NE Times 기사 작성 지침
+에이전트 1-4 (TIMES) — JP Times 기사 작성 지침
 이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 근거: 2026-06 basic.xlsx 전수 분석 (TIMES 산문 108건: L1 48 / L2 40 / L3 20, 각주·한글 뜻풀이 제외).
 수치 사양(단어 수·문장 길이·문단·CEFR)은 config.py가 단일 기준 — 이 파일엔 문체 규칙만 둔다 (드리프트 방지).
@@ -14,7 +14,7 @@ Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사 (L3
   전문가 인용·다관점 분석. 독자에게 직접 말 걸지 않음.
 -->
 
-NE Times — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
+JP Times — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
 VOICE (Writer only — not a review criterion — applies to agent1_4_times.md)
 The byline author of this publication is Daniel, On Air's

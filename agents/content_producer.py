@@ -1,4 +1,4 @@
-"""Agent 1: ContentProducerAgent — NE Times 콘텐츠 제작 파이프라인 코디네이터.
+"""Agent 1: ContentProducerAgent — JP Times 콘텐츠 제작 파이프라인 코디네이터.
 
 흐름:
   WriterAgent → PlagiarismCheckerAgent → EditorAgent

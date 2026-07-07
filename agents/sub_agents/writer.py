@@ -1,4 +1,4 @@
-"""WriterAgent — 토픽을 받아 레벨에 맞는 NE Times 기사를 작성한다."""
+"""WriterAgent — 토픽을 받아 레벨에 맞는 JP Times 기사를 작성한다."""
 
 import logging
 import re

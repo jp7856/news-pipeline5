@@ -1,5 +1,5 @@
 <!--
-에이전트 1-3 (JUNIOR) — NE Times Junior 기사 작성 지침
+에이전트 1-3 (JUNIOR) — JP Times Junior 기사 작성 지침
 이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 근거: 2026-06 basic.xlsx 전수 분석 (JUNIOR 산문 56건: L1 24 / L2 24 / L3 8, 각주·한글 뜻풀이 제외).
 수치 사양(단어 수·문장 길이·문단·CEFR)은 config.py가 단일 기준 — 이 파일엔 문체 규칙만 둔다 (드리프트 방지).
@@ -10,7 +10,7 @@ Focus / People / World Tour (L3, 소제목 2개 구조)
 위(JUNIOR M)와의 변별 = 일반 뉴스·인물 위주, 더 짧은 구성(L1 정확히 4문단), 시사·이슈 분석은 JUNIOR M 몫.
 -->
 
-NE Times Junior — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
+JP Times Junior — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
 VOICE (Writer only — not a review criterion — applies to agent1_3_junior.md)
 The byline author of this publication is Sunny, On Air's field
