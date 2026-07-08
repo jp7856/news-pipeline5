@@ -322,15 +322,20 @@ def api_audio_backfill():
 
     TTS 장애로 오디오만 누락된 발행분의 재시도 용도도 겸한다.
     한 번에 limit건(기본 5)만 처리 — 남은 건수를 보고 반복 호출한다.
+    force_rows에 든 행은 기존 파일이 있어도 재생성한다 (캐스팅 변경 반영용).
     """
-    limit = int((request.json or {}).get("limit", 5))
+    body = request.json or {}
+    limit = int(body.get("limit", 5))
+    force_rows = {int(x) for x in body.get("force_rows", [])}
     ws = WorksheetAgent()
     generated, failed = [], []
     remaining = 0
     for entry in _history:
         r = entry.get("result", {})
         row = r.get("sheet_row")
-        if not r.get("published") or not row or audio_storage.exists(row):
+        if not r.get("published") or not row:
+            continue
+        if audio_storage.exists(row) and row not in force_rows:
             continue
         if len(generated) + len(failed) >= limit:
             remaining += 1

@@ -213,7 +213,7 @@ cute stylized proportions, high quality 3D render
 
 | 캐릭터 | 보이스 | pitch | rate | 방향 |
 |---|---|---|---|---|
-| Leo | en-US-Wavenet-F | +4 | 0.95 | 8세 남아 근사 — 밝고 어린 톤 |
+| Leo | en-US-Wavenet-F | +4 | 0.85 | 8세 남아 근사 — 밝고 어린 톤, KINDER 청취자 배려 저속 |
 | Ruby | en-US-Neural2-F | +3 | 1.0 | 12세 여아 — 또랑또랑 |
 | Sunny | en-US-Neural2-C | +2 | 1.08 | 14세 — 경쾌·명료 |
 | Erin | en-US-Neural2-E | 0 | 0.97 | 20대 — 차분·자연스러움 |
@@ -222,6 +222,8 @@ cute stylized proportions, high quality 3D render
 재캐스팅 이력:
 - Leo: en-US-Neural2-H +5 → **en-US-Wavenet-F +4** (2026-07-08 — Neural2-H의 여성감 지적,
   Wavenet-F가 나이 축 합격. 포먼트 후처리 실험(3×3)은 무처리 채택으로 종결)
+- Leo rate: 0.95 → **0.85** (2026-07-08 — 속도 실험 0.95/0.85/0.80/0.75 중 채택,
+  KINDER 청취 속도 배려)
 
 ---
 
