@@ -298,6 +298,7 @@ def api_published():
             "article": e["result"]["article"],
             "image_url": e["result"].get("image_url", ""),
             "byline": e["result"].get("byline", ""),  # On Air 필자 (빈 값이면 프론트 폴백)
+            "sub_level": e["result"].get("sub_level", ""),  # GA4 article_view 파라미터용
         }
         for e in _history
         if e.get("result", {}).get("published")
