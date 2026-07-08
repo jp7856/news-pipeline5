@@ -51,6 +51,10 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
 11. WebSocket 재연결 시 article_ready 유실 방지
     - sessionStorage 기반 지속 세션 ID → 재연결 후에도 같은 room에서 이벤트 수신
 12. 중단 기능, /api/health 환경변수 점검
+13. 발행 시 TTS — On Air 캐릭터 보이스 MP3 사전 생성 (Google Cloud TTS Neural2, 캐스팅=tts_voice.VOICE_CASTING)
+    - 저장: Railway 볼륨 /data/audio/{sheet_row}.mp3 (audio_storage.py — R2 이관 시 이 모듈만 교체)
+    - 서빙: /api/audio/{row}.mp3 (Range 지원) / published에 audio_url (없으면 사이트가 Web Speech 폴백)
+    - TTS 실패는 발행을 막지 않음 (로그 + 시트 검수경고) / 사용량: /api/usage.tts (무료 100만 자/월 대비 %)
 
 ## 핵심 파일
 
@@ -64,7 +68,9 @@ agents/sub_agents/
   source_finder.py         # 웹 검색 출처 (BBC/Reuters 등은 크롤러 차단 — 넣으면 400)
   fact_checker.py          # 기사-출처 대조 사실 점검 (출처 없으면 생략)
   reviser.py               # (article, reply, changed) 반환
-  usage_tracker.py         # TrackedClient — 모든 클라이언트는 이걸로 생성
+  usage_tracker.py         # TrackedClient — 모든 클라이언트는 이걸로 생성 + TTS 월 누계(record_tts_chars)
+  tts_voice.py             # On Air 캐릭터 TTS — VOICE_CASTING(캐스팅 단일 소스) + Cloud TTS 합성
+  audio_storage.py         # 오디오 저장 추상화 (볼륨 /data/audio) — R2 이관 시 이 모듈만 교체
 dashboard/app.py           # Flask 앱
                            #   /api/run /stop /continue /revise — 파이프라인 제어
                            #   /api/publish — 시트 상태 '발행완료' 처리 (GitHub 토큰 불필요)
