@@ -112,6 +112,60 @@ def usage_summary() -> str:
 
 
 # ------------------------------------------------------------------
+# TTS 사용량 — 월 누계를 볼륨에 영속화 (Claude 사용량과 달리 실행 단위 리셋 없음)
+# ------------------------------------------------------------------
+
+import json as _json
+import os as _os
+from datetime import datetime as _dt
+
+TTS_FREE_CHARS_MONTH = 1_000_000          # Neural2 무료 할당량 (자/월)
+TTS_PRICE_USD_PER_CHAR = 16.0 / 1_000_000  # 무료 한도 초과분 단가
+
+def _tts_usage_path() -> str:
+    from agents.sub_agents.audio_storage import AUDIO_DIR
+    return _os.path.join(AUDIO_DIR, "_tts_usage.json")
+
+
+def _tts_load() -> dict:
+    try:
+        with open(_tts_usage_path(), encoding="utf-8") as f:
+            return _json.load(f)
+    except (OSError, _json.JSONDecodeError):
+        return {}
+
+
+def record_tts_chars(n: int) -> None:
+    """이번 달 TTS 합성 문자 수를 누적 기록한다 (볼륨의 JSON 파일)."""
+    month = _dt.now().strftime("%Y-%m")
+    with _lock:
+        data = _tts_load()
+        data[month] = int(data.get(month, 0)) + int(n)
+        try:
+            _os.makedirs(_os.path.dirname(_tts_usage_path()), exist_ok=True)
+            with open(_tts_usage_path(), "w", encoding="utf-8") as f:
+                _json.dump(data, f)
+        except OSError as e:
+            # 기록 실패가 발행/TTS를 막으면 안 된다
+            import logging
+            logging.getLogger(__name__).warning(f"TTS 사용량 기록 실패: {e}")
+
+
+def tts_usage() -> dict:
+    """이번 달 TTS 사용량 — 무료 한도 대비 %와 초과분 예상 비용 포함."""
+    month = _dt.now().strftime("%Y-%m")
+    chars = int(_tts_load().get(month, 0))
+    over = max(0, chars - TTS_FREE_CHARS_MONTH)
+    return {
+        "month": month,
+        "chars": chars,
+        "free_limit_pct": round(chars / TTS_FREE_CHARS_MONTH * 100, 1),
+        "est_usd": round(over * TTS_PRICE_USD_PER_CHAR, 4),
+        "est_krw": round(over * TTS_PRICE_USD_PER_CHAR * USD_TO_KRW),
+    }
+
+
+# ------------------------------------------------------------------
 # Anthropic 클라이언트 래퍼 — messages.create 호출을 가로채 사용량 기록
 # ------------------------------------------------------------------
 

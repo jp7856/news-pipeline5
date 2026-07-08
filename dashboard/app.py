@@ -8,13 +8,14 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
 from flask_socketio import SocketIO, join_room
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import LEVEL_CONFIG, SUBLEVEL_CONFIG, DEFAULT_SUBLEVEL
 from orchestrator import Orchestrator, PipelineCancelled
 from agents.worksheet import WorksheetAgent, BYLINE_AUTHORS
+from agents.sub_agents import audio_storage
 from models import ContentPackage, Level, Section
 
 logger = logging.getLogger(__name__)
@@ -279,11 +280,49 @@ def api_publish():
     if not ws.mark_published(int(sheet_row)):
         return jsonify({"error": "발행 처리에 실패했습니다. 시트 연결을 확인하세요."}), 500
 
+    target = None
     for entry in _history:
         if entry.get("result", {}).get("sheet_row") == sheet_row:
             entry["result"]["published"] = True
+            target = entry
 
-    return jsonify({"message": "Published"})
+    # TTS 오디오 생성 — 실패해도 발행은 그대로 진행한다 (오디오만 누락 + 로그/시트 경고)
+    audio_ok = _generate_publish_audio(int(sheet_row), target, ws)
+
+    return jsonify({"message": "Published", "audio": audio_ok})
+
+
+def _generate_publish_audio(sheet_row: int, entry: dict | None, ws: WorksheetAgent) -> bool:
+    if entry is None:
+        logger.warning(f"[TTS] {sheet_row}행 히스토리 없음 — 오디오 생성 건너뜀")
+        return False
+    try:
+        from agents.sub_agents.tts_voice import synthesize
+        from agents.sub_agents.usage_tracker import record_tts_chars
+
+        result = entry.get("result", {})
+        text = (result.get("article") or {}).get("text", "")
+        if not text:
+            logger.warning(f"[TTS] {sheet_row}행 본문 없음 — 오디오 생성 건너뜀")
+            return False
+        byline = result.get("byline") or BYLINE_AUTHORS.get(entry.get("level", ""), "")
+        audio_storage.save(sheet_row, synthesize(text, byline))
+        record_tts_chars(len(text))
+        return True
+    except Exception as e:
+        logger.warning(f"[TTS] {sheet_row}행 오디오 생성 실패 (발행은 정상 진행): {e}")
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        ws.append_warning(sheet_row, f"⚠ TTS 오디오 생성 실패 ({stamp}): {str(e)[:150]}")
+        return False
+
+
+@app.route("/api/audio/<int:article_id>.mp3")
+def api_audio(article_id: int):
+    """발행 기사 오디오 서빙 — conditional=True로 Range 요청(모바일 <audio> 탐색) 지원."""
+    path = audio_storage.file_path(article_id)
+    if not path:
+        return jsonify({"error": "Not found"}), 404
+    return send_file(path, mimetype="audio/mpeg", conditional=True)
 
 
 @app.route("/api/published")
@@ -299,6 +338,8 @@ def api_published():
             "image_url": e["result"].get("image_url", ""),
             "byline": e["result"].get("byline", ""),  # On Air 필자 (빈 값이면 프론트 폴백)
             "sub_level": e["result"].get("sub_level", ""),  # GA4 article_view 파라미터용
+            # 오디오 파일이 있을 때만 경로 — 사이트는 API_BASE + audio_url (없으면 Web Speech 폴백)
+            "audio_url": audio_storage.url_path(e["result"].get("sheet_row", 0)),
         }
         for e in _history
         if e.get("result", {}).get("published")
@@ -318,7 +359,13 @@ def api_usage():
             monthly_cnt[ym] += 1
     current_month = datetime.now().strftime("%Y-%m")
     months_sorted = sorted(monthly_krw.keys())
+    from agents.sub_agents.usage_tracker import tts_usage
     return jsonify({
+        # TTS 월 누계 — 무료 한도(100만 자/월) 대비 % + 볼륨 사용량(연 2.4GB 페이스 확인용)
+        "tts": {
+            **tts_usage(),
+            "volume_mb": round(audio_storage.total_bytes() / 1_048_576, 1),
+        },
         "total_krw": int(sum(monthly_krw.values())),
         "count": len(_history),
         "current_month": current_month,

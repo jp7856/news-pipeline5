@@ -40,6 +40,7 @@ BYLINE_AUTHORS: dict[str, str] = {
 
 STATUS_COL = SHEET_COLUMNS.index("상태") + 1     # 상태 컬럼 위치 (1-based)
 COST_COL = SHEET_COLUMNS.index("비용(원)") + 1   # 비용 컬럼 위치 (1-based)
+WARN_COL = SHEET_COLUMNS.index("검수경고") + 1   # 검수경고 컬럼 위치 (1-based)
 
 
 class WorksheetAgent:
@@ -78,6 +79,17 @@ class WorksheetAgent:
             return True
         except Exception as e:
             self._log(f"[Publish] 발행 처리 오류: {e}")
+            return False
+
+    def append_warning(self, row: int, msg: str) -> bool:
+        """검수경고 컬럼에 경고 한 줄을 덧붙인다 (발행 시 TTS 실패 등 — 상태와 무관)."""
+        try:
+            sheet = self._get_sheet()
+            cur = sheet.cell(row, WARN_COL).value or ""
+            sheet.update_cell(row, WARN_COL, f"{cur}\n{msg}".strip())
+            return True
+        except Exception as e:
+            self._log(f"[Worksheet] 경고 기록 오류: {e}")
             return False
 
     @staticmethod
