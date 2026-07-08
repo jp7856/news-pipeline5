@@ -24,6 +24,8 @@ Sources used:
 {sources}
 
 For each of the 9 categories, mark whether it PASSES or FAILS, and briefly explain why.
+If item 5 or 9 fails, copy the exact offending quote/sentence VERBATIM into that item's
+note — the revision system needs the original text to remove or rewrite it.
 Then give an overall verdict.
 
 Respond in this exact JSON format:
@@ -67,6 +69,10 @@ CHECKLIST_TEXT = """1. Sentence-Level Paraphrasing
    - Quotes are short and necessary
    - Quotes are clearly attributed
    - No long quotes replacing paraphrasing
+   - A DIRECT quotation (text inside quotation marks) asserts verbatim speech and
+     must plausibly come from a listed source. Attributing a direct quote to a vague
+     entity (e.g. one consumer rights group said: "...") does NOT make it safe —
+     vagueness never licenses quotation marks
 
 6. Tone & Purpose Shift
    - Tone is neutral and explanatory
@@ -87,7 +93,10 @@ CHECKLIST_TEXT = """1. Sentence-Level Paraphrasing
    - No quotes or attributed statements assigned to people/institutions that
      cannot be verified (e.g. a named expert who does not appear in any source)
    - Vague-but-honest attribution ("some researchers say") is NOT fabrication;
-     inventing a specific person, title, or figure IS"""
+     inventing a specific person, title, or figure IS
+   - The boundary is the QUOTATION MARKS: unquoted indirect paraphrase with vague
+     attribution is honest; putting invented words INSIDE quotation marks is
+     fabrication no matter how vague the speaker is"""
 
 
 class PlagiarismCheckerAgent:

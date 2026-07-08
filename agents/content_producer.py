@@ -135,6 +135,10 @@ class ContentProducerAgent:
         plagiarism_report = self._plagcheck.run(article)
         max_retries = 3
         attempt = 0
+        # 승계 경고 — 한 번이라도 걸린 게이트는 이후 재작성 지시에 계속 병기한다
+        # (예: 1차에서 날조를 고치고 2차에서 sl만 남았을 때, 인용을 다시 넣는 재발 차단)
+        carry: dict[str, str] = {}
+        prev_sl_side: str | None = None
         while attempt < max_retries:
             wc_ok = self._writer._word_count_in_range(article.word_count, wc_range)
             avg_sl = self._writer._avg_sentence_length(article.text)
@@ -153,10 +157,26 @@ class ContentProducerAgent:
                 cefr_ok = cefr_result.passed if cefr_result is not None else True
             if plagiarism_report.passed and wc_ok and sl_ok and cefr_ok:
                 break
+            # sl 진동 감지 — 직전 시도와 반대 방향으로 목표 구간을 건너뛰었으면
+            # (예: 16.2 → 11.3) 백지 재작성은 중단하고 Reviser 정밀 수정으로 이월.
+            # 문장 분할/병합 표적 수정이 sl 조준에는 백지 재작성보다 정확하다.
+            if not sl_ok:
+                sl_side = "over" if self._sl_over(avg_sl, sl_range) else "under"
+                if prev_sl_side and sl_side != prev_sl_side:
+                    self._log(
+                        f"[{self.AGENT_LABEL}] sl 진동 감지 ({prev_sl_side}→{sl_side}, "
+                        f"평균 {avg_sl:.1f} / 목표 {sl_range}) — Writer 재작성 중단, "
+                        f"Reviser 정밀 수정으로 이월"
+                    )
+                    break
+                prev_sl_side = sl_side
+            else:
+                prev_sl_side = None
             attempt += 1
             self._cancel_check()
 
             notes: list[str] = []
+            failing_now: set[str] = set()
             if not plagiarism_report.passed:
                 # hard 축(표절·날조)만 재작성 사유로 — soft(출처 커버리지 등)는
                 # 재작성으로 해소 불가능하므로 Writer에게 먹이지 않는다 (예산 낭비 차단)
@@ -178,6 +198,19 @@ class ContentProducerAgent:
                     f"original sentence structure; remove or honestly attribute any "
                     f"invented quotes, names, or figures."
                 )
+                if getattr(plagiarism_report, "fab_fails", []):
+                    failing_now.add("날조")
+                    carry["날조"] = (
+                        "An earlier attempt was flagged for fabrication — do NOT introduce "
+                        "any direct quotes, named experts, statistics, or dates that are "
+                        "not present in the sources."
+                    )
+                if getattr(plagiarism_report, "plag_fails", []):
+                    failing_now.add("표절")
+                    carry["표절"] = (
+                        "An earlier attempt was flagged for source-similar phrasing — keep "
+                        "every sentence fully original in wording and structure."
+                    )
             if not wc_ok:
                 self._log(
                     f"[{self.AGENT_LABEL}] 워드카운트 {article.word_count} 목표({wc_range}) 벗어남 "
@@ -188,6 +221,8 @@ class ContentProducerAgent:
                     f"range of {wc_range} words. Adjust the length to fall WITHIN {wc_range} words "
                     f"— keep the reading level, the facts, and fully original wording."
                 )
+                failing_now.add("단어수")
+                carry["단어수"] = f"Keep the word count within {wc_range} words."
             if not sl_ok:
                 self._log(
                     f"[{self.AGENT_LABEL}] 평균 문장 길이 {avg_sl:.1f}단어 목표({sl_range}) 벗어남 "
@@ -203,6 +238,10 @@ class ContentProducerAgent:
                     f"Keep the facts and fully original wording."
                 )
                 self._log(f"[{self.AGENT_LABEL}] sl 재작성 조준점: {_mid_hint}")
+                failing_now.add("문장길이")
+                carry["문장길이"] = (
+                    f"Keep the AVERAGE sentence length within {sl_range} — aim for {_mid_hint}."
+                )
             if cefr_result and not cefr_result.passed:
                 self._log(
                     f"[{self.AGENT_LABEL}] CEFR 난이도 위반 — 재작성 {attempt}/{max_retries}회"
@@ -210,6 +249,17 @@ class ContentProducerAgent:
                 for v in cefr_result.violations:
                     self._log(f"[{self.AGENT_LABEL}]   ⤷ {v}")
                 notes.append(cefr_feedback(cefr_result))
+                failing_now.add("CEFR")
+                carry["CEFR"] = "Keep vocabulary and sentence structure at the target CEFR level."
+
+            # 승계 경고 병기 — 이번에 통과했어도 과거에 걸린 게이트의 제약을 되새긴다
+            carried = [msg for gate, msg in carry.items() if gate not in failing_now]
+            if carried:
+                notes.append(
+                    "[Standing constraints from earlier attempts — still mandatory, "
+                    "do NOT reintroduce these issues]\n"
+                    + "\n".join(f"- {m}" for m in carried)
+                )
 
             revised_topic = (
                 f"{topic}\n\n[REVISION NOTE — attempt {attempt}]\n" + "\n\n".join(notes)
@@ -355,12 +405,41 @@ class ContentProducerAgent:
                 f"flagged passages in fully original wording",
             ))
         if fab:
+            # "9_fabrication 실패" 같은 판정명은 Reviser가 실행할 수 없다 —
+            # 걸린 인용문 원문을 지시에 넣어 "이 문장을 삭제/간접화하라"로 번역한다.
+            fab_notes = " · ".join(
+                plagiarism_report.checklist.get(k, {}).get("note", "")[:150]
+                for k in fab if plagiarism_report.checklist.get(k, {}).get("note")
+            )
+            quotes = self._quoted_spans(article.text)
+            if quotes:
+                qlist = " / ".join(f'"{q[:120]}"' for q in quotes[:3])
+                action = (
+                    f"delete these direct quotes or convert them to INDIRECT statements "
+                    f"without quotation marks: {qlist}. Do NOT add any new quotes, "
+                    f"named experts, or unsourced figures"
+                )
+            else:
+                action = (
+                    "remove the invented detail/attribution described above, or replace it "
+                    "with honest unquoted vague attribution (e.g. 'some researchers say'). "
+                    "Do NOT add any new quotes or unsourced figures"
+                )
             unmet.append((
                 "날조",
-                f"[날조] {', '.join(fab)} — remove the invented quote/detail or replace it "
-                f"with honest vague attribution (e.g. 'some researchers say')",
+                f"[날조] {', '.join(fab)}"
+                + (f" — checker note: {fab_notes}" if fab_notes else "")
+                + f" — {action}",
             ))
         return unmet
+
+    @staticmethod
+    def _quoted_spans(text: str) -> list[str]:
+        """본문에서 직접 인용(따옴표 안 문장)을 추출한다 — 날조 지시 번역용."""
+        spans = []
+        for a, b in re.findall(r'"([^"]{8,200})"|“([^”]{8,200})”', text):
+            spans.append((a or b).strip())
+        return spans
 
     def _refine_with_reviser(
         self, article, plagiarism_report, level, sub_level: str,
