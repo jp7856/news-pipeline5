@@ -100,7 +100,10 @@ class ContentProducerAgent:
 
         # 실제 기사 출처 검색 (AI가 URL을 지어내는 환각 방지)
         from agents.sub_agents.source_finder import search_real_sources
-        real_sources = search_real_sources(topic, section.value, hint_keywords=hint_keywords, log=self._log)
+        real_sources = search_real_sources(
+            topic, section.value, hint_keywords=hint_keywords, log=self._log,
+            level=level.value,  # 레벨별 화이트리스트 (JUNIOR+ 시사 도메인 확장)
+        )
 
         self._cancel_check()
 
