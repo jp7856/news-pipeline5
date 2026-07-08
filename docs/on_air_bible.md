@@ -206,6 +206,23 @@ cute stylized proportions, high quality 3D render
 - 번역(에이전트 2) 톤 확인: 캐릭터 터치가 있는 기사의 한글 번역 톤 유지 여부 — 실물 관측 후 판단
 - 인용 전용 에이전트(장기): 출처에 실제 발언이 있을 때만 인용 주입 — Agent5 인용 판정 제거의 근본 해소
 
+### 4.4 TTS 보이스 캐스팅 (2026-07-08 확정 — 코드 반영: agents/sub_agents/tts_voice.py VOICE_CASTING)
+
+목소리도 캐릭터 IP 자산 — 이 표가 단일 소스이며, 캐스팅 변경 시 여기부터 갱신한다.
+발행 시 Google Cloud TTS로 기사 오디오를 사전 생성한다 (기술 구조는 CLAUDE.md 참조).
+
+| 캐릭터 | 보이스 | pitch | rate | 방향 |
+|---|---|---|---|---|
+| Leo | en-US-Wavenet-F | +4 | 0.95 | 8세 남아 근사 — 밝고 어린 톤 |
+| Ruby | en-US-Neural2-F | +3 | 1.0 | 12세 여아 — 또랑또랑 |
+| Sunny | en-US-Neural2-C | +2 | 1.08 | 14세 — 경쾌·명료 |
+| Erin | en-US-Neural2-E | 0 | 0.97 | 20대 — 차분·자연스러움 |
+| Daniel | en-US-Neural2-D | −2 | 0.95 | 30대 앵커 — 중저음 |
+
+재캐스팅 이력:
+- Leo: en-US-Neural2-H +5 → **en-US-Wavenet-F +4** (2026-07-08 — Neural2-H의 여성감 지적,
+  Wavenet-F가 나이 축 합격. 포먼트 후처리 실험(3×3)은 무처리 채택으로 종결)
+
 ---
 
 ## 5. Claude Code 주입 지시문
