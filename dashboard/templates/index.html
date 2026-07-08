@@ -182,6 +182,7 @@
          style="margin-left:auto;cursor:pointer;text-align:right;line-height:1.45;user-select:none">
       <div style="font-size:.68rem;color:#64748b">이번 달 누적 사용량 📊</div>
       <div id="usage-badge-val" style="font-size:.8rem;color:#93c5fd;font-weight:600"></div>
+      <div id="usage-badge-tts" style="font-size:.68rem;color:#64748b"></div>
     </div>
   </header>
 
@@ -409,6 +410,15 @@
         const val = document.getElementById("usage-badge-val");
         if (val) val.textContent =
           `${_usageData.current_month_krw.toLocaleString()}원 · ${_usageData.current_month_count}건`;
+        const tts = _usageData.tts;
+        const ttsEl = document.getElementById("usage-badge-tts");
+        if (ttsEl && tts) {
+          ttsEl.textContent =
+            `🔊 TTS: 이번 달 ${tts.chars.toLocaleString()}자 / 무료 한도 ${tts.free_limit_pct}% · 볼륨 ${tts.volume_mb}MB`;
+          // 무료 한도 80% 초과가 실질적으로 유일한 경고 신호 — 초과분부터 과금 시작 전 단계
+          ttsEl.style.color = tts.free_limit_pct > 80 ? "#f87171" : "#64748b";
+          ttsEl.style.fontWeight = tts.free_limit_pct > 80 ? "700" : "400";
+        }
       } catch (e) { /* 시트 미연결 등 — 표시만 생략 */ }
     }
     refreshUsage();
