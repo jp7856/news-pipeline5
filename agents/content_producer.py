@@ -158,23 +158,25 @@ class ContentProducerAgent:
 
             notes: list[str] = []
             if not plagiarism_report.passed:
+                # hard 축(표절·날조)만 재작성 사유로 — soft(출처 커버리지 등)는
+                # 재작성으로 해소 불가능하므로 Writer에게 먹이지 않는다 (예산 낭비 차단)
+                hard_keys = (list(getattr(plagiarism_report, "plag_fails", []))
+                             + list(getattr(plagiarism_report, "fab_fails", [])))
                 failed_items = "\n".join(
-                    f"- {key}: {val.get('note', '')}"
-                    for key, val in plagiarism_report.checklist.items()
-                    if not val.get("pass")
+                    f"- {key}: {plagiarism_report.checklist.get(key, {}).get('note', '')}"
+                    for key in hard_keys
                 )
-                self._log(f"[{self.AGENT_LABEL}] 표절 위험 감지 — 재작성 {attempt}/{max_retries}회")
-                # 어느 부분이 걸렸는지 로그에 명시
-                for key, val in plagiarism_report.checklist.items():
-                    if not val.get("pass"):
-                        self._log(f"[{self.AGENT_LABEL}]   ⤷ 걸린 항목: {key} — {val.get('note', '')[:120]}")
+                self._log(f"[{self.AGENT_LABEL}] 표절/날조 위험 감지 — 재작성 {attempt}/{max_retries}회")
+                for key in hard_keys:
+                    note = plagiarism_report.checklist.get(key, {}).get("note", "")
+                    self._log(f"[{self.AGENT_LABEL}]   ⤷ 걸린 항목: {key} — {note[:120]}")
                 if plagiarism_report.notes:
                     self._log(f"[{self.AGENT_LABEL}]   ⤷ 비고: {plagiarism_report.notes[:120]}")
                 notes.append(
-                    f"The previous version failed these plagiarism checks:\n{failed_items}\n"
-                    f"Notes: {plagiarism_report.notes}\n"
-                    f"Fix each failed item specifically. Use stronger paraphrasing, "
-                    f"original sentence structure, and your own framing of the facts."
+                    f"The previous version failed these plagiarism/fabrication checks:\n{failed_items}\n"
+                    f"Fix each failed item specifically. Use stronger paraphrasing and "
+                    f"original sentence structure; remove or honestly attribute any "
+                    f"invented quotes, names, or figures."
                 )
             if not wc_ok:
                 self._log(
@@ -343,12 +345,20 @@ class ContentProducerAgent:
                         f"sentence structure to the target level",
                     ))
 
-        if not plagiarism_report.passed:
-            failed = [k for k, v in plagiarism_report.checklist.items() if not v.get("pass")]
+        # hard 두 축만 게이트 — soft(출처 커버리지)는 여기서 잡지 않는다
+        plag = list(getattr(plagiarism_report, "plag_fails", []))
+        fab = list(getattr(plagiarism_report, "fab_fails", []))
+        if plag:
             unmet.append((
                 "표절",
-                f"[표절] 경고 {len(failed)}건 ({', '.join(failed[:3])}) — rephrase the "
+                f"[표절] 유사성 경고 {len(plag)}건 ({', '.join(plag[:3])}) — rephrase the "
                 f"flagged passages in fully original wording",
+            ))
+        if fab:
+            unmet.append((
+                "날조",
+                f"[날조] {', '.join(fab)} — remove the invented quote/detail or replace it "
+                f"with honest vague attribution (e.g. 'some researchers say')",
             ))
         return unmet
 

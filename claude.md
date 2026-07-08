@@ -1,8 +1,8 @@
-# NE Times Content Pipeline v5 — 핸드오프 문서
+# JP Times Content Pipeline v5 — 핸드오프 문서
 
 ## 프로젝트 개요
 
-영어 교육 신문(NE Times Kinder/Kids/Junior/Times/Junior M) 콘텐츠 자동 생성 파이프라인.
+영어 교육 신문(JP Times Kinder/Kids/Junior/Times/Junior M) 콘텐츠 자동 생성 파이프라인.
 토픽 입력 → 기사 초안(표절 통과까지 자동 재작성) → AI 대화 수정 → 전체 제작 → 검수 → 발행 → 공개 사이트 게시.
 **에이전트 구성의 단일 기준은 ORCHESTRATION.md** — 에이전트 1은 신문별 1-1~1-5로 분리됨.
 
@@ -20,7 +20,8 @@
 ```
 Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: agents/guidelines/*.md)
          → [Phase 1] SourceFinder(웹검색, 도메인 화이트리스트, 최신 기사 우선·발행일 수집)
-         → Writer → Plagiarism (실패 시 실패 항목 피드백으로 최대 3회 재작성, 걸린 항목 로그)
+         → Writer → Plagiarism (hard 두 축[표절=유사성 1-4·날조=가짜 인용/수치 5·9]만 재작성 트리거,
+            출처 커버리지[7·8]는 soft — 검수경고로만. 실패 항목 피드백으로 최대 3회 재작성)
          → FactCheck (출처 대조 사실 점검 — 불일치 시 1회 재작성 + 표절 재검사)
          → 게이트 미충족 잔존 시 Reviser 정밀 수정 (최대 2회 — 구조화 사유["[게이트] 측정값/허용 — 표적 지시"]
             투입, 수정 시 표절 재검사. 그래도 미충족이면 미리보기에 ❌ 표시하고 사람이 채팅으로 해결)
@@ -28,7 +29,7 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
          → [이후 작업 진행] → [Phase 2] Editor(교정 제안만 — 본문 반영 안 함) → Crossword + Workbook
          → Translator → ImageFinder(기존 이미지 제외 + 후보 중 선택 — 매체별 변별력)
          → Reviewer(판정만 — 자동 재작성 없음. hard 게이트[단어수·문장길이·CEFR·표절]만 거부,
-            LLM 지침 지적은 '검수경고' 컬럼으로 '작성완료'에 병기)
+            LLM 지침 지적·출처 커버리지는 '검수경고' 컬럼으로 '작성완료'에 병기. 날조는 표절과 별도 사유[❌ 날조])
          → Worksheet(시트 저장 — 통과 '작성완료' / 최종 거부 '검수거부' / 검수 실패 '검수오류')
          → [발행하기] → 시트 상태 '발행완료' → /api/published → jp-times-site5 노출
 중단: Running 배지 클릭 (단계 사이 PipelineCancelled)

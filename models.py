@@ -127,10 +127,19 @@ class WorkbookSet:
 
 @dataclass
 class PlagiarismReport:
-    """PlagiarismCheckAgent의 검사 결과"""
+    """PlagiarismCheckAgent의 검사 결과
+
+    passed는 hard 두 축(표절=유사성 1~4, 날조=5·9)만 결정한다.
+    출처 커버리지(7)·최종 자가점검(8)·문체 목적(6)은 soft — 상태에 영향 없이
+    soft_warnings로만 실려 검수경고 컬럼에 합류한다. (2026-07-08 재정의:
+    출처 부족을 표절로 분류해 재작성 예산을 태우던 과민 게이트 해소)
+    """
     passed: bool
-    checklist: dict[str, Any]   # 8개 항목별 결과
+    checklist: dict[str, Any]   # 9개 항목별 결과
     notes: str = ""             # 문제 있을 경우 상세 메모
+    plag_fails: list = field(default_factory=list)  # 표절 축(1~4) 실패 항목명
+    fab_fails: list = field(default_factory=list)   # 날조 축(5·9) 실패 항목명
+    soft_warnings: str = ""     # soft 축(6·7·8) 경고 문자열 ("⚠ 출처 커버리지: ..." 등)
 
 
 @dataclass

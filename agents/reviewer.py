@@ -135,6 +135,9 @@ class ReviewerAgent:
         # (실행마다 판정이 흔들리고, 문체 지적으로 승인 본문을 기계가 재작성하게
         # 만들던 원인이었음. 사람이 발행 전에 읽고 판단한다.)
         warnings = "" if llm_approved else llm_reason
+        _soft = getattr(pkg.plagiarism_report, "soft_warnings", "")
+        if _soft:
+            warnings = (warnings + chr(10) + _soft).strip() if warnings else _soft
 
         # hard 게이트: 코드가 직접 재측정하는 것만 거부를 낸다.
         from agents.level_agents import cefr_key_for
@@ -173,15 +176,20 @@ class ReviewerAgent:
         if cefr_result and not cefr_result.passed:
             for v in cefr_result.violations[:3]:
                 hard_notes.append(f"❌ [CEFR] {v} — {_prov('CEFR')}")
-        if not pkg.plagiarism_report.passed:
-            failed_items = [
-                f"{k}: {v.get('note', '')[:80]}"
-                for k, v in pkg.plagiarism_report.checklist.items()
-                if not v.get("pass")
-            ]
-            detail = " · ".join(failed_items[:3]) or "세부 항목 없음"
+        # 표절(유사성)과 날조(가짜 인용·수치)를 별도 사유로 — soft(출처 커버리지)는
+        # 거부 사유가 아니라 warnings로만 합류한다.
+        _plag = list(getattr(pkg.plagiarism_report, "plag_fails", []))
+        _fab = list(getattr(pkg.plagiarism_report, "fab_fails", []))
+        _cl = pkg.plagiarism_report.checklist
+        if _plag:
+            detail = " · ".join(f"{k}: {_cl.get(k, {}).get('note', '')[:80]}" for k in _plag[:3])
             hard_notes.append(
-                f"❌ [표절] 경고 {len(failed_items)}건 — {detail} — {_prov('표절')}"
+                f"❌ [표절] 유사성 경고 {len(_plag)}건 — {detail} — {_prov('표절')}"
+            )
+        if _fab:
+            detail = " · ".join(f"{k}: {_cl.get(k, {}).get('note', '')[:80]}" for k in _fab[:3])
+            hard_notes.append(
+                f"❌ [날조] {detail} — {_prov('날조')}"
             )
 
         passed = not hard_notes
