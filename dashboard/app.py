@@ -316,6 +316,32 @@ def _generate_publish_audio(sheet_row: int, entry: dict | None, ws: WorksheetAge
         return False
 
 
+@app.route("/api/audio_backfill", methods=["POST"])
+def api_audio_backfill():
+    """오디오 없는 발행 기사에 MP3 소급 생성 — 발행 훅과 동일 규칙.
+
+    TTS 장애로 오디오만 누락된 발행분의 재시도 용도도 겸한다.
+    한 번에 limit건(기본 5)만 처리 — 남은 건수를 보고 반복 호출한다.
+    """
+    limit = int((request.json or {}).get("limit", 5))
+    ws = WorksheetAgent()
+    generated, failed = [], []
+    remaining = 0
+    for entry in _history:
+        r = entry.get("result", {})
+        row = r.get("sheet_row")
+        if not r.get("published") or not row or audio_storage.exists(row):
+            continue
+        if len(generated) + len(failed) >= limit:
+            remaining += 1
+            continue
+        if _generate_publish_audio(int(row), entry, ws):
+            generated.append(row)
+        else:
+            failed.append(row)
+    return jsonify({"generated": generated, "failed": failed, "remaining": remaining})
+
+
 @app.route("/api/audio/<int:article_id>.mp3")
 def api_audio(article_id: int):
     """발행 기사 오디오 서빙 — conditional=True로 Range 요청(모바일 <audio> 탐색) 지원."""
