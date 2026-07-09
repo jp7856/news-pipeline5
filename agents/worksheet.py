@@ -26,6 +26,7 @@ SHEET_COLUMNS = [
     "검수경고",  # Agent5 LLM 지적사항 (soft — 상태와 무관, 발행 전 참고)
     "거부사유",  # hard 게이트 거부 시 게이트별 줄바꿈 구분 ("❌ [게이트] 측정값 / 허용 — 출처")
     "필자",      # On Air 캐릭터 바이라인 (BYLINE_AUTHORS — docs/on_air_bible.md 단일 소스)
+    "제목",      # 기사 제목 — 본문과 분리 (구버전 행은 빈 값 → 사이트가 첫 문장 폴백)
 ]
 
 # On Air 캐릭터 바이라인 — 발행물→필자 고정 매핑.
@@ -150,6 +151,7 @@ class WorksheetAgent:
                     "section": row[2],
                     "sub_level": row[17] if len(row) > 17 else "",  # 구버전 행은 미기록
                     "article": {
+                        "title": row[21] if len(row) > 21 else "",  # 구버전 행은 빈 값
                         "text": row[5],
                         "text_ko": row[6],
                         "summary_ko": row[7],
@@ -258,6 +260,7 @@ class WorksheetAgent:
             (pkg.review_result.notes
              if pkg.review_result and not pkg.review_result.passed else ""),
             BYLINE_AUTHORS.get(pkg.level.value, ""),
+            pkg.article.title,
         ]
 
     @staticmethod

@@ -76,10 +76,15 @@ class Article:
 @dataclass
 class ArticleResult:
     """WriterAgent가 생성한 기사"""
-    text: str                          # 완성된 기사 본문 (영어)
+    text: str                          # 완성된 기사 본문 (영어) — 제목 미포함
     vocabulary: list[str]              # 추출된 핵심 어휘 5~8개
     sources: list[str]                 # 참고 URL 목록
     word_count: int = 0
+
+    # 제목 — 본문과 분리 보관. 본문 첫 문장으로 제목을 재사용하는 것은 금지
+    # (2026-07-09: 사이트가 본문 첫 문장을 제목으로 뽑던 구조에서 중복 노출 문제.
+    #  Writer가 headline을 따로 내고, 본문 선두의 제목 에코는 코드가 무조건 제거)
+    title: str = ""
 
     # Agent 2: 번역 결과
     text_ko: str = ""                  # 한국어 번역 본문

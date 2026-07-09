@@ -124,10 +124,16 @@ Instructions:
     If none are relevant, use an empty list [] — it is perfectly fine to write the
     article from your own general knowledge with no cited sources. Never cite a
     source that does not match the article.
+13. HEADLINE: Write a short original headline (3–9 words) in the "headline" field.
+    The headline is displayed separately from the article — the "article" field
+    must contain BODY TEXT ONLY: never repeat the headline as the first line or
+    first sentence, and never put any title/heading line inside the article text.
+    The article must start directly with its first body sentence.
 
 Respond in this exact JSON format:
 {{
-  "article": "<full article text with paragraphs separated by \\n\\n>",
+  "headline": "<short original headline, 3-9 words — NOT a sentence from the article>",
+  "article": "<body text only, paragraphs separated by \\n\\n — no headline inside>",
   "vocabulary": ["swimming A2 · 수영하다", "enormous B1 · 거대한", "word3 A1 · 뜻3"],
   "relevant_sources": [1, 3]
 }}
@@ -139,7 +145,10 @@ CRITICAL JSON RULES:
 
         data = self._call_claude(prompt, guidelines)
 
-        article_text = data.get("article", "")
+        # 제목-본문 분리 보증: 프롬프트 지시만으로는 재발해서 코드로 무조건 배제한다
+        headline, article_text = self._split_headline(
+            data.get("headline", ""), data.get("article", "")
+        )
         vocabulary = data.get("vocabulary", [])
 
         # 출처는 AI 생성이 아닌 실제 검색 결과만 사용 (404 환각 방지).
@@ -157,6 +166,7 @@ CRITICAL JSON RULES:
             text=article_text,
             vocabulary=vocabulary[:8],
             sources=sources,
+            title=headline,
         )
         self._log(
             f"[Writer] 완료 — {result.word_count}단어 / "
@@ -175,6 +185,42 @@ CRITICAL JSON RULES:
             f"{', 범위 내' if sl_ok else ' ⚠️ 범위 벗어남'})"
         )
         return result
+
+    @staticmethod
+    def _split_headline(headline: str, text: str) -> tuple[str, str]:
+        """제목-본문 분리를 코드로 보증한다 (본문 첫 문장 = 제목 무조건 배제).
+
+        - 본문 선두의 헤드라인성 단독 단락(짧고 종결부호 없음)은 제목으로 흡수
+        - 본문 첫 문장이 제목과 동일(구두점·대소문자 무시)하면 제거
+        두 겹(제목 줄 + 제목 반복 문장)까지 처리한다.
+        """
+        def norm(s: str) -> str:
+            return re.sub(r"[^0-9a-z가-힣]", "", (s or "").lower())
+
+        headline = (headline or "").strip()
+        text = (text or "").strip()
+        for _ in range(2):
+            parts = text.split("\n\n", 1)
+            first_para = parts[0].strip()
+            # 헤드라인성 단독 줄: 짧고(≤12단어) 문장 종결부호가 없으며,
+            # 제목이 없거나 제목과 같은 내용일 때만 본문에서 떼어낸다
+            if (
+                len(parts) == 2
+                and len(first_para.split()) <= 12
+                and not re.search(r"[.!?]\s*$", first_para)
+                and (not headline or norm(first_para) == norm(headline))
+            ):
+                headline = headline or first_para
+                text = parts[1].strip()
+                continue
+            # 본문 첫 문장이 제목의 에코면 제거
+            if headline:
+                m = re.match(r"([^\n]{2,150}?[.!?])\s*", text + " ")
+                if m and norm(m.group(1)) == norm(headline):
+                    text = text[m.end():].strip() if m.end() <= len(text) else ""
+                    continue
+            break
+        return headline, text
 
     @staticmethod
     def _select_relevant_sources(real_sources: list[dict], relevant) -> list[str]:

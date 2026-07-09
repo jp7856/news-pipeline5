@@ -252,6 +252,7 @@ def _run_revise(sid: str, instruction: str):
             "reply": reply,
             "changed": changed,
             "article": {
+                "title": article.title,
                 "text": article.text,
                 "word_count": article.word_count,
                 "vocabulary": article.vocabulary,
@@ -301,10 +302,15 @@ def _generate_publish_audio(sheet_row: int, entry: dict | None, ws: WorksheetAge
         from agents.sub_agents.usage_tracker import record_tts_chars
 
         result = entry.get("result", {})
-        text = (result.get("article") or {}).get("text", "")
+        art = result.get("article") or {}
+        text = art.get("text", "")
         if not text:
             logger.warning(f"[TTS] {sheet_row}행 본문 없음 — 오디오 생성 건너뜀")
             return False
+        # 낭독 대상 = 제목 + 영어 본문 (제목 분리 후에도 낭독에는 포함 — 구기사는 빈 제목)
+        title = (art.get("title") or "").strip()
+        if title:
+            text = f"{title}{'' if title[-1] in '.!?' else '.'}\n\n{text}"
         byline = result.get("byline") or BYLINE_AUTHORS.get(entry.get("level", ""), "")
         audio_storage.save(sheet_row, synthesize(text, byline))
         record_tts_chars(len(text))
@@ -440,6 +446,7 @@ def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url
         article = state["article"]
         socketio.emit("article_ready", {
             "article": {
+                "title": article.title,
                 "text": article.text,
                 "word_count": article.word_count,
                 "vocabulary": article.vocabulary,
@@ -507,6 +514,7 @@ def _serialize(pkg: ContentPackage, sheet_url: str = "") -> dict:
         "section": pkg.section.value,
         "sub_level": pkg.sub_level,
         "article": {
+            "title": pkg.article.title,
             "text": pkg.article.text,
             "text_ko": pkg.article.text_ko,
             "summary_ko": pkg.article.summary_ko,
