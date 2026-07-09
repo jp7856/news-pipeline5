@@ -226,13 +226,16 @@ proportions, high quality 3D render
 목소리도 캐릭터 IP 자산 — 이 표가 단일 소스이며, 캐스팅 변경 시 여기부터 갱신한다.
 발행 시 Google Cloud TTS로 기사 오디오를 사전 생성한다 (기술 구조는 CLAUDE.md 참조).
 
-| 캐릭터 | 보이스 | pitch | rate | 방향 |
-|---|---|---|---|---|
-| Leo | en-US-Wavenet-F | +4 | 0.85 | 8세 남아 근사 — 밝고 어린 톤, KINDER 청취자 배려 저속 |
-| Ruby | en-US-Neural2-F | +3 | 0.95 | 12세 여아 — 또랑또랑 |
-| Sunny | en-US-Neural2-C | +2 | 1.0 | 14세 — 경쾌·명료 |
-| Erin | en-US-Neural2-E | 0 | 0.97 | 20대 — 차분·자연스러움 |
-| Daniel | en-US-Neural2-D | −2 | 0.95 | 30대 앵커 — 중저음 |
+| 캐릭터 | 보이스 | pitch | rate | 문장 쉼(SSML) | 방향 |
+|---|---|---|---|---|---|
+| Leo | en-US-Wavenet-F | +4 | 0.85 | 700ms | 8세 남아 근사 — 밝고 어린 톤, KINDER 청취자 배려 저속 |
+| Ruby | en-US-Neural2-F | +3 | 0.85 | 800ms | 12세 여아 — 또랑또랑 |
+| Sunny | en-US-Neural2-C | +2 | 0.90 | 700ms | 14세 — 경쾌·명료 |
+| Erin | en-US-Neural2-E | 0 | 0.95 | 600ms | 20대 — 차분·자연스러움 |
+| Daniel | en-US-Neural2-D | −2 | 1.0 | 500ms | 30대 앵커 — 중저음 |
+
+문단 쉼은 문장 쉼 + 300ms 자동 연동 (tts_voice.PARA_BREAK_EXTRA_MS).
+Ruby 쉼(800ms) > Leo 쉼(700ms)은 청취 판정 우선으로 수용된 예외.
 
 재캐스팅 이력:
 - Leo: en-US-Neural2-H +5 → **en-US-Wavenet-F +4** (2026-07-08 — Neural2-H의 여성감 지적,
@@ -241,6 +244,10 @@ proportions, high quality 3D render
   KINDER 청취 속도 배려)
 - Ruby rate: 1.0 → **0.95** / Sunny rate: 1.08 → **1.0** (2026-07-09 — 실기사 청취
   판정 기반 속도 하향, 보이스·pitch 무변)
+- **rate+쉼 통합 확정** (2026-07-09 — 실기사·샘플 청취 판정 기반, 파일 선택 방식):
+  Leo 0.85/700ms · Ruby 0.95→**0.85**/800ms · Sunny 1.0→**0.90**/700ms ·
+  Erin 0.97→**0.95**/600ms · Daniel 0.95→**1.0**/500ms. SSML 문장/문단 쉼 도입과 동시 확정.
+  실기사 통청취 후 미세조정 가능성 유보
 
 ---
 
