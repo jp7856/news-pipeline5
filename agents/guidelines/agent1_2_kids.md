@@ -55,3 +55,13 @@ Sub-level differences:
   formatted, not harder. A 2-paragraph intro that ends with a lead-in such as
   "Let's look at three ...", followed by exactly 3 subheaded items, each 2 short
   paragraphs. Sentences stay 9–12 words.
+
+Sentence budget (how to hit the average — archive medians; a method, not a uniformity rule):
+- L1: aim for an average around 9 words per sentence — one idea, plus a small detail
+  when natural; if a sentence runs past ~12 words, split it.
+- L2: aim for an average around 10 words per sentence; if a sentence runs past ~13
+  words, split it.
+- L3: aim for an average around 11 words per sentence; if a sentence runs past ~14
+  words, split it.
+- Vary sentence lengths within the range (some short and punchy, some fuller) —
+  never write every sentence at the same length.

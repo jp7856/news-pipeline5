@@ -64,3 +64,11 @@ Sub-level differences:
 - L2 (longer explainer / feature): 6–8 paragraphs with fuller background and a deeper
   step-by-step explanation; feature topics (e.g., paired profiles) may use noun-phrase
   subheadings, each with 1–2 paragraphs. Sentences 12–16 words.
+
+Sentence budget (how to hit the average — archive medians; a method, not a uniformity rule):
+- L1: aim for an average around 12–13 words per sentence — one idea with one clause
+  of support; if a sentence runs past ~16 words, split it.
+- L2: aim for an average around 13 words per sentence; if a sentence runs past ~17
+  words, split it.
+- Vary sentence lengths within the range (some short and punchy, some fuller) —
+  never write every sentence at the same length.

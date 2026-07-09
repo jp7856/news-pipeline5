@@ -69,3 +69,13 @@ Sub-level differences:
   total lands near 285 — covering multiple perspectives or stakeholders (government,
   experts, citizens), causes and consequences, and broader implications; reported speech
   and analyst commentary throughout. (280–310 words.)
+
+Sentence budget (how to hit the average — archive medians; a method, not a uniformity rule):
+- L1: aim for an average around 15 words per sentence — a claim plus its key detail;
+  if a sentence runs past ~20 words, split it.
+- L2: aim for an average around 16–17 words per sentence — a claim plus its evidence
+  or qualification; if a sentence runs past ~22 words, split it.
+- L3: the paragraph budget above already sets the sentence budget (~15–20 words each);
+  within it, still vary sentence lengths.
+- Vary sentence lengths within the range (some short and punchy, some fuller) —
+  never write every sentence at the same length.

@@ -43,3 +43,11 @@ Sub-level differences:
 - L2 (People / Focus features): slightly longer and may use 1–2 short subheadings —
   a simple question ("Where is the festival?") or a short noun phrase ("Nile River") —
   each followed by 1–2 short sentences. Sentences stay 5–8 words.
+
+Sentence budget (how to hit the average — archive medians; a method, not a uniformity rule):
+- L1: aim for an average around 5 words per sentence — one simple fact each;
+  if a sentence runs past ~8 words, split it.
+- L2: aim for an average around 7 words per sentence — one simple fact, sometimes
+  with one tiny detail; if a sentence runs past ~10 words, split it.
+- Vary sentence lengths within the range (some very short, some a little fuller) —
+  never write every sentence at the same length.

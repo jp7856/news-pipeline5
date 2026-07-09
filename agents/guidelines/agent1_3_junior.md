@@ -57,3 +57,13 @@ Sub-level differences:
   subheaded, not harder. A 1–2 paragraph intro, then exactly 2 subheaded sections
   (noun-phrase subheadings such as "Obsession with Butterflies", "The Human Calculator"),
   each 1–2 paragraphs. Sentences stay 14–18 words.
+
+Sentence budget (how to hit the average — archive medians; a method, not a uniformity rule):
+- L1: aim for an average around 13 words per sentence — one main idea plus one
+  supporting detail; if a sentence runs past ~17 words, split it.
+- L2: aim for an average around 14 words per sentence — one main idea plus one
+  supporting detail; if a sentence runs past ~18 words, split it.
+- L3: aim for an average around 15 words per sentence; if a sentence runs past ~18
+  words, split it.
+- Vary sentence lengths within the range (some short and punchy, some fuller) —
+  never write every sentence at the same length.
