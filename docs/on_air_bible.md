@@ -97,7 +97,7 @@ will read as plain news, and that is correct.
 - 시그니처: 현장감 — 단, agent1_3_junior.md 지침을 따르는 범위 안에서만. 빈도 규정 없음
 - 관심사: 스포츠, 환경, 유행하는 것들
 - 금지선: 냉소 없음 / 심각한 주제를 가볍게 다루지 않음 (JUNIOR부터 재난·사회 이슈를 다루므로, 밝은 캐릭터가 톤을 망치지 않게 하는 IP 안전장치)
-- 비주얼: 주근깨, 야구모자, 주황 스커트 + 노랑 스타킹. 다섯 중 유일한 모자 = 야외/현장 아이덴티티
+- 비주얼: 주근깨, 어깨길이 갈색 머리, 카키 필드 베스트 + 주황 티셔츠 + 청바지, 프레스 패스(JUNIOR), 야외 취재 현장 배경 — 다섯 중 유일한 야외 = 현장 아이덴티티
 
 **VOICE 블록** (agent1_3_junior.md 주입용)
 
@@ -198,6 +198,21 @@ soft studio lighting, friendly professional smile, big expressive eyes,
 cute stylized proportions, high quality 3D render
 ```
 
+- Sunny v2 확정 프롬프트 (2026-07-09 생성본):
+
+```
+3D Pixar-style animated character, a cheerful 14-year-old girl field
+reporter, freckles, shoulder-length auburn hair, wearing a khaki
+reporter field vest with many pockets over an orange t-shirt, jeans
+and sneakers, a press pass lanyard around her neck with orange badge
+text JUNIOR, holding a microphone with an orange flag labeled JUNIOR,
+standing in an outdoor news reporting scene, soft studio lighting,
+big expressive eyes, cute stylized proportions, taller teen body
+proportions, high quality 3D render
+```
+
+- Sunny 이미지 v2 (2026-07-09): 초등생 톤 → 중학생 현장 리포터로 리뉴얼, 야구모자 폐기
+- Sunny v2 알려진 결함: 원본의 베스트 가슴 패치 텍스트 붕괴("POESES") — 헤드샷 크롭 밖이라 실사용 무영향, 원본 재작업 시 정리 대상
 - 향후 재생성 시: 배경 임시 텍스트(KNEWS, Young Voice News, TIMES NEWS 등)는 "ON AIR" 또는 발행물명으로 교체
 
 ### 4.3 향후 트랙 (미착수)
