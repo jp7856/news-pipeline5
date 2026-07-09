@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 # 캐스팅 기록의 단일 소스는 docs/on_air_bible.md 4.4 — 변경 시 그쪽도 갱신.
 VOICE_CASTING: dict[str, dict] = {
     "Leo":    {"voice": "en-US-Wavenet-F", "pitch": 4.0,  "rate": 0.85},  # 2026-07-08 재캐스팅·속도 확정
-    "Ruby":   {"voice": "en-US-Neural2-F", "pitch": 3.0,  "rate": 1.0},
-    "Sunny":  {"voice": "en-US-Neural2-C", "pitch": 2.0,  "rate": 1.08},
+    "Ruby":   {"voice": "en-US-Neural2-F", "pitch": 3.0,  "rate": 0.95},  # 2026-07-09 속도 조정
+    "Sunny":  {"voice": "en-US-Neural2-C", "pitch": 2.0,  "rate": 1.0},   # 2026-07-09 속도 조정
     "Erin":   {"voice": "en-US-Neural2-E", "pitch": 0.0,  "rate": 0.97},
     "Daniel": {"voice": "en-US-Neural2-D", "pitch": -2.0, "rate": 0.95},
 }
