@@ -67,3 +67,9 @@ Sentence budget (how to hit the average — archive medians; a method, not a uni
   words, split it.
 - Vary sentence lengths within the range (some short and punchy, some fuller) —
   never write every sentence at the same length.
+
+Volume budget (how to land in the assigned word range — archive medians; a plan, not a straitjacket):
+- L1: plan the 4 paragraphs at ~35 words each.
+- L2: plan roughly 4–5 paragraphs of ~35–40 words each.
+- L3: plan roughly 6 paragraphs of ~35 words each (intro + 2 subheaded sections).
+- If the draft drifts from the word range, add or drop a paragraph — do not pad sentences.

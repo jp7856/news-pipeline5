@@ -273,6 +273,8 @@ class ContentProducerAgent:
                 real_sources=real_sources,
                 guidelines=self._guidelines,
                 sub_level=sub_level,
+                # 직전 시도가 인용 0으로 확정됐으면 무출처 가드레일 삽입 (선제 날조 차단)
+                force_no_source_guard=not article.sources,
             )
             plagiarism_report = self._plagcheck.run(article)
 
@@ -311,6 +313,7 @@ class ContentProducerAgent:
                 real_sources=real_sources,
                 guidelines=self._guidelines,
                 sub_level=sub_level,
+                force_no_source_guard=not article.sources,
             )
             # 수정 후 표절 재검사 원칙 유지
             plagiarism_report = self._plagcheck.run(article)

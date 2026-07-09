@@ -37,6 +37,7 @@ class WriterAgent:
         real_sources: list[dict] | None = None,
         guidelines: str = "",
         sub_level: str = DEFAULT_SUBLEVEL,
+        force_no_source_guard: bool = False,
     ) -> ArticleResult:
         """
         topic : 기사 주제 또는 뉴스 URL
@@ -45,6 +46,7 @@ class WriterAgent:
         real_sources : SourceFinder가 검색한 실제 기사 [{"title","url","snippet"}]
         guidelines : 신문별 작성 지침 (agents/guidelines/*.md 본문 — 에이전트 1-X가 주입)
         sub_level : 매체 내부 서브레벨 (L1/L2/L3 — SUBLEVEL_CONFIG가 사양을 덮어씀)
+        force_no_source_guard : 인용 0 확정 후 재작성 시 무출처 가드레일 강제 삽입
         """
         cfg, sub_level = self._merge_config(level, sub_level)
         # 배정된 서브레벨은 작성 중 로그에 노출하지 않는다
@@ -70,6 +72,23 @@ class WriterAgent:
                 f"Each reference is numbered. SOME MAY NOT actually be about this topic:\n{lines}"
             )
 
+        # 무출처 선제 가드레일 — 날조는 반응형(REVISION NOTE)보다 선제 차단이 싸다.
+        # 출처 0건이거나, 직전 시도에서 인용 0이 확정된 재작성이면 프롬프트에 삽입.
+        usable_sources = [s for s in real_sources if s.get("url")]
+        no_source_guard = ""
+        if (not usable_sources and not source_content) or force_no_source_guard:
+            self._log("[Writer] 무출처 가드레일 적용 — 인용·고유명·수치 선제 차단")
+            no_source_guard = (
+                "\n\nNO-SOURCE MODE — no usable sources are available; write from "
+                "general knowledge only:\n"
+                "- Do NOT use quotation marks or direct quotes.\n"
+                "- Do NOT name specific people, institutions, programs, or events "
+                "that you cannot verify.\n"
+                "- Do NOT cite specific statistics, percentages, or years.\n"
+                "- Frame specifics as general patterns: 'many schools', "
+                "'in recent years', 'students often'."
+            )
+
         _vocab_guardrails = self._extract_vocab_guardrails(guidelines)
         _vocab_instruction = (
             f"6. VOCABULARY — follow this newspaper's level strictly:\n{_vocab_guardrails}"
@@ -78,7 +97,7 @@ class WriterAgent:
         )
 
         prompt = f"""You are writing an article for {cfg['newspaper']}.
-{source_hint}{real_source_hint}
+{source_hint}{real_source_hint}{no_source_guard}
 
 Topic: {topic}
 Section: {section.value}
