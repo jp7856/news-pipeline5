@@ -353,6 +353,40 @@ class ContentProducerAgent:
                 f"미리보기에서 AI 수정 채팅으로 해결해주세요"
             )
 
+        # ── 출처 0건 관측 — 원인(검색 문제 vs Writer 과판정) 진단은 파이프라인 밖
+        #    Claude 세션 몫이므로, 그대로 복사해 물어볼 문의문을 로그에 남긴다 ──
+        if not article.sources:
+            available = [s for s in real_sources if s.get("url")]
+            self._log(
+                f"[{self.AGENT_LABEL}] ⚠️ 출처 0건 — 이 기사는 사실 점검(출처 대조)이 "
+                f"생략된 채 생성됐습니다. 아래 문의문을 복사해 Claude에게 진단을 요청하세요."
+            )
+            self._log("───── 문의문 시작 (여기부터 복사) ─────")
+            self._log(
+                f'news-pipeline5에서 출처 0건 기사가 나왔어. '
+                f'토픽: "{topic[:80]}" / 매체: {level.value}'
+            )
+            if available:
+                self._log(
+                    f"SourceFinder는 출처 {len(available)}건을 찾았는데 "
+                    f"Writer가 전부 '주제와 무관' 판정으로 제외했어:"
+                )
+                for i, s in enumerate(available, 1):
+                    self._log(f"  {i}. {(s.get('title') or '?')[:60]} — {s.get('url')}")
+                self._log(
+                    "위 출처 목록과 기사 토픽을 대조해서 (a) 검색이 무관한 출처를 "
+                    "가져온 건지 (b) Writer 판정이 과하게 깐깐한 건지 판정하고, "
+                    "문제인 쪽(source_finder 검색 정확도 또는 writer의 SOURCE RELEVANCE "
+                    "기준)을 고쳐줘."
+                )
+            else:
+                self._log("SourceFinder 검색 단계에서부터 출처가 0건이었어 (Writer 판정 이전 문제).")
+                self._log(
+                    "검색 질의가 토픽과 어긋났는지, web_search 호출이 실패(400 등)했는지 "
+                    "위쪽 [SourceFinder] 로그를 보고 원인을 찾아서 고쳐줘."
+                )
+            self._log("───── 문의문 끝 (여기까지 복사) ─────")
+
         return article, plagiarism_report
 
     # ------------------------------------------------------------------
