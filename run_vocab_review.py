@@ -31,6 +31,7 @@ CCTV_THRESHOLD와 동일). 이 저장소에 이미 존재하던 유일한 실증
 import io
 import json
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, __file__.rsplit("\\", 1)[0] if "\\" in __file__ else ".")
@@ -75,6 +76,19 @@ _COL_SECTION = SHEET_COLUMNS.index("섹션")
 _COL_TOPIC = SHEET_COLUMNS.index("토픽")
 _COL_TEXT = SHEET_COLUMNS.index("기사(영문)")
 _COL_SUBLEVEL = SHEET_COLUMNS.index("서브레벨")
+
+
+def _is_transient(e: Exception) -> bool:
+    """구글 API 일시 장애 여부 — 재시도 대상 판별.
+
+    2026-07-13·07-20 정기 실행이 2주 연속 시트 읽기 503(APIError)으로 죽어
+    도입. 5xx(서버 측 일시 장애)와 네트워크 단절만 재시도하고, 4xx(권한·
+    할당량·잘못된 요청)는 재시도해도 같으므로 즉시 실패시킨다.
+    """
+    if isinstance(e, gspread.exceptions.APIError):
+        status = getattr(getattr(e, "response", None), "status_code", None)
+        return status is None or status >= 500
+    return isinstance(e, (ConnectionError, TimeoutError))
 
 
 def _open_spreadsheet() -> gspread.Spreadsheet:
@@ -169,16 +183,29 @@ def main() -> None:
     ss: gspread.Spreadsheet | None = None
     error: Exception | None = None
     scanned = carved = weak = strong = seed_only = 0
-    try:
-        ss = _open_spreadsheet()
-        scanned, carved, weak, strong, seed_only = _scan_and_record(
-            ss, date_match, run_date, period_label
-        )
-    except Exception as e:
-        error = e
-        import traceback
-        print(f"[FAILED] Vocab Review 실행 실패: {e}")
-        traceback.print_exc()
+    # 일시 장애(5xx·네트워크)는 30초→60초 간격으로 최대 2회 재시도 —
+    # 재시도 없이는 순간 503 한 번이 그 주 리뷰 전체 실패가 된다.
+    max_attempts = 3
+    for _attempt in range(1, max_attempts + 1):
+        try:
+            ss = _open_spreadsheet()
+            scanned, carved, weak, strong, seed_only = _scan_and_record(
+                ss, date_match, run_date, period_label
+            )
+            error = None
+            break
+        except Exception as e:
+            error = e
+            if _is_transient(e) and _attempt < max_attempts:
+                delay = 30 * _attempt
+                print(f"[RETRY] 일시 장애 감지({e}) — {delay}초 후 재시도 "
+                      f"{_attempt}/{max_attempts - 1}")
+                time.sleep(delay)
+                continue
+            import traceback
+            print(f"[FAILED] Vocab Review 실행 실패: {e}")
+            traceback.print_exc()
+            break
 
     # ── Run Log 탭 (성공/실패 무관, flag 0건이어도 반드시 남김) ─────────────
     try:
