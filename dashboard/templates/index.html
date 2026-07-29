@@ -23,9 +23,14 @@
     .cb-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
     .cb-row p{flex:1;font-size:.9rem;color:#93c5fd;min-width:200px}
     #btn-continue{background:#16a34a;color:white;font-weight:600}
-    #auto-publish-label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:#bfdbfe;cursor:pointer}
-    #auto-publish{width:15px;height:15px;cursor:pointer;accent-color:#16a34a}
-    #auto-publish-label .ap-hint{color:#7f9cc0;font-size:.8rem}
+    #auto-publish-label{display:flex;align-items:center;gap:6px;font-size:.85rem;color:#94a3b8;cursor:pointer;user-select:none}
+    #auto-publish{width:16px;height:16px;cursor:pointer;accent-color:#16a34a}
+    #auto-publish-label .ap-hint{color:#64748b;font-size:.8rem}
+    #auto-publish-state{padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:600;
+      background:#1e293b;color:#94a3b8;border:1px solid #334155}
+    #auto-publish-label.on{color:#4ade80}
+    #auto-publish-label.on #auto-publish-state{background:#166534;color:#4ade80;border-color:#16a34a}
+    #auto-publish-echo{font-size:.85rem;color:#4ade80}
     #btn-discard{background:#1e293b;color:#94a3b8;border:1px solid #334155}
     #revise-input{flex:1;min-width:240px;padding:9px 14px;border:1px solid #3b82f6;border-radius:8px;background:#0f172a;color:#e2e8f0;font-size:.85rem}
     #btn-revise{background:#7c3aed;color:white;font-weight:600}
@@ -209,8 +214,17 @@
       <button id="btn-run" onclick="runPipeline()">Generate</button>
       <button style="background:#1e293b;color:#94a3b8;border:1px solid #334155" onclick="openHistory()">모두 보기</button>
     </div>
-    <div class="form-row" style="margin-bottom:56px;margin-top:8px">
+    <div class="form-row" style="margin-bottom:10px;margin-top:8px">
       <input type="url" id="source-url" placeholder="기사 링크 삽입 (선택) — URL로 원문 기반 자동 생성" style="flex:1;padding:8px 14px;font-size:.95rem">
+    </div>
+    <!-- 자동 발행 — 항상 보이는 상단 토글. 기본 꺼짐(수동 발행이 디폴트), 검수 승인분만 발행 -->
+    <div class="form-row" style="margin-bottom:56px">
+      <label id="auto-publish-label"
+             title="켜두면 검수를 통과한 기사가 곧바로 사이트에 발행됩니다. 검수 거부된 기사는 발행되지 않습니다.">
+        <input type="checkbox" id="auto-publish"> 검수 통과 시 자동 발행
+        <span class="ap-hint">— 대량 생산용. 꺼져 있으면 기사마다 [📢 발행하기]를 직접 눌러야 합니다</span>
+        <span id="auto-publish-state">꺼짐</span>
+      </label>
     </div>
       <a id="btn-sheet" href="#" target="_blank" class="hidden"
          style="padding:10px 20px;background:#166534;color:#4ade80;border-radius:8px;font-size:.9rem;font-weight:500;text-decoration:none">
@@ -244,12 +258,9 @@
         <button id="btn-continue" onclick="continuePipeline()">이후 작업 진행 ▶</button>
         <button id="btn-discard" onclick="discardPipeline()">취소</button>
       </div>
-      <!-- 자동 발행 — 대량 생산용. 기본 꺼짐(수동 발행이 디폴트), 검수 승인분만 발행 -->
+      <!-- 자동 발행 상태 표시(토글은 상단 폼에 있음) -->
       <div class="cb-row">
-        <label id="auto-publish-label" title="검수를 통과한 기사만 자동으로 발행합니다. 거부된 기사는 발행하지 않습니다.">
-          <input type="checkbox" id="auto-publish"> 검수 통과 시 자동 발행
-          <span class="ap-hint">— 대량 생산용. 끄면 지금처럼 직접 발행 버튼을 눌러야 합니다</span>
-        </label>
+        <span id="auto-publish-echo"></span>
       </div>
       <div id="revise-chat"></div>
       <div class="cb-row">
@@ -387,12 +398,24 @@
     });
 
     // 자동 발행 토글은 브라우저에 기억시킨다 — 대량 생산 중 새로고침해도 유지.
-    // 기본값은 꺼짐(수동 발행이 디폴트).
+    // 기본값은 꺼짐(수동 발행이 디폴트). 켜짐/꺼짐을 배지로 항상 보여준다.
     (() => {
       const cb = document.getElementById("auto-publish");
+      const label = document.getElementById("auto-publish-label");
+      const state = document.getElementById("auto-publish-state");
+      const echo = document.getElementById("auto-publish-echo");
+      const paint = () => {
+        label.classList.toggle("on", cb.checked);
+        state.textContent = cb.checked ? "켜짐" : "꺼짐";
+        echo.textContent = cb.checked
+          ? "⚡ 자동 발행 켜짐 — 검수를 통과하면 바로 사이트에 올라갑니다"
+          : "";
+      };
       cb.checked = localStorage.getItem("auto_publish") === "1";
+      paint();
       cb.addEventListener("change", () => {
         localStorage.setItem("auto_publish", cb.checked ? "1" : "0");
+        paint();
       });
     })();
 
