@@ -264,6 +264,19 @@ class ContentProducerAgent:
                     + "\n".join(f"- {m}" for m in carried)
                 )
 
+            # 현재 충족 중인 게이트 보존 지시 — carry(실패 이력)만으로는
+            # "처음부터 맞고 있던 게이트"가 아무 제약 없이 재작성돼 깨진다.
+            # 2026-07-29 50건 배치 실측: 거부 6건 전부 sl 게이트였고 그중 2건은
+            # 1차에서 wc·sl 둘 다 통과한 원고가 표절 재작성으로 sl이 붕괴(19.7→14.1,
+            # 19.1→13.9) → 진동 → 거부. 측정값을 명시해 현 상태를 기준선으로 준다.
+            hold = self._hold_notes(
+                article.word_count if wc_ok else None, wc_range,
+                avg_sl if sl_ok else None, sl_range,
+                cefr_ok and cefr_result is not None,
+            )
+            if hold:
+                notes.append(hold)
+
             revised_topic = (
                 f"{topic}\n\n[REVISION NOTE — attempt {attempt}]\n" + "\n\n".join(notes)
             )
@@ -481,6 +494,37 @@ class ContentProducerAgent:
             spans.append((a or b).strip())
         return spans
 
+    def _hold_notes(
+        self, wc: int | None, wc_range: str,
+        avg_sl: float | None, sl_range: str, cefr_ok: bool,
+    ) -> str:
+        """현재 충족 중인 게이트를 '유지하라'는 제약문으로 만든다 (측정값 명시).
+
+        None을 넘긴 축은 지금 미충족이므로 보존 대상이 아니다. carry(실패 이력)와
+        상보적 — carry는 "과거에 깨진 것 재발 금지", 이건 "지금 맞는 것 유지".
+        """
+        lines = []
+        if wc is not None and wc_range:
+            lines.append(
+                f"word count is {wc}, already INSIDE the required {wc_range} "
+                f"— it must stay inside"
+            )
+        if avg_sl is not None and sl_range:
+            lines.append(
+                f"AVERAGE sentence length is {avg_sl:.1f} words, already INSIDE the "
+                f"required {sl_range} — it must stay inside (do not merge or split "
+                f"sentences beyond what the fix needs)"
+            )
+        if cefr_ok:
+            lines.append("the reading level already matches the target CEFR — keep it there")
+        if not lines:
+            return ""
+        return (
+            "[ALREADY CORRECT — these are measured as PASSING right now and must stay "
+            "passing. Breaking one of these is a failure even if everything else improves]\n"
+            + "\n".join(f"- {line}" for line in lines)
+        )
+
     def _refine_with_reviser(
         self, article, plagiarism_report, level, sub_level: str,
         wc_range: str, sl_range: str, cefr_key, unmet: list, writer_rewrites: int,
@@ -501,11 +545,21 @@ class ContentProducerAgent:
                 f"{attempts}/{max_attempts}회 ({', '.join(g for g, _ in unmet)})"
             )
             reasons = "\n".join(line for _, line in unmet)
+            # 충족 중인 축은 Reviser에게도 보존 대상으로 명시 — #43(2026-07-29 배치)은
+            # sl 20.1(초과)로 넘겨받아 22.5로 악화시킨 사례. 측정값 기준선을 준다.
+            unmet_names = {g for g, _ in unmet}
+            hold = self._hold_notes(
+                article.word_count if "단어수" not in unmet_names else None, wc_range,
+                (self._writer._avg_sentence_length(article.text)
+                 if "문장길이" not in unmet_names else None), sl_range,
+                cefr_key is not None and "CEFR" not in unmet_names,
+            )
             instruction = (
                 f"REVISION REQUEST: The article failed these hard gates after "
                 f"{writer_rewrites} Writer rewrites. Fix EVERY item below — this is "
                 f"the top priority and is non-negotiable:\n{reasons}\n\n"
-                f"While fixing, keep the facts, sources, and reading level. "
+                + (f"{hold}\n\n" if hold else "")
+                + f"While fixing, keep the facts, sources, and reading level. "
                 f"Output the full revised article."
             )
             article2, _reply, changed = reviser.run(
