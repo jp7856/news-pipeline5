@@ -27,7 +27,9 @@
     #auto-publish{width:16px;height:16px;cursor:pointer;accent-color:#16a34a}
     #auto-publish-label .ap-hint{color:#64748b;font-size:.8rem}
     #auto-publish-state{padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:600;
-      background:#1e293b;color:#94a3b8;border:1px solid #334155}
+      background:#1e293b;color:#94a3b8;border:1px solid #334155;white-space:nowrap;flex:0 0 auto}
+    #auto-publish-label>input,#auto-publish-label{flex-wrap:wrap}
+    #auto-publish-label .ap-name{white-space:nowrap}
     #auto-publish-label.on{color:#4ade80}
     #auto-publish-label.on #auto-publish-state{background:#166534;color:#4ade80;border-color:#16a34a}
     #auto-publish-echo{font-size:.85rem;color:#4ade80}
@@ -221,9 +223,10 @@
     <div class="form-row" style="margin-bottom:56px">
       <label id="auto-publish-label"
              title="켜두면 검수를 통과한 기사가 곧바로 사이트에 발행됩니다. 검수 거부된 기사는 발행되지 않습니다.">
-        <input type="checkbox" id="auto-publish"> 검수 통과 시 자동 발행
-        <span class="ap-hint">— 대량 생산용. 꺼져 있으면 기사마다 [📢 발행하기]를 직접 눌러야 합니다</span>
+        <input type="checkbox" id="auto-publish">
+        <span class="ap-name">검수 통과 시 자동 발행</span>
         <span id="auto-publish-state">꺼짐</span>
+        <span class="ap-hint">— 대량 생산용. 꺼져 있으면 기사마다 [📢 발행하기]를 직접 눌러야 합니다</span>
       </label>
     </div>
       <a id="btn-sheet" href="#" target="_blank" class="hidden"
