@@ -199,9 +199,15 @@ def api_continue():
     if pend is None:
         return jsonify({"error": "No pending article. Generate first."}), 404
 
+    # 자동 발행 — 대량 생산용 옵션. 기본 꺼짐(수동 발행이 디폴트),
+    # 검수 승인된 기사만 발행한다(거부는 자동 발행 대상 아님).
+    auto_publish = bool((request.json or {}).get("auto_publish"))
+
     _running[sid] = True
     _cancel_events[sid] = threading.Event()
-    thread = threading.Thread(target=_run_phase2, args=(sid, pend), daemon=True)
+    thread = threading.Thread(
+        target=_run_phase2, args=(sid, pend, auto_publish), daemon=True
+    )
     thread.start()
     return jsonify({"message": "Phase 2 started"})
 
@@ -277,9 +283,22 @@ def api_publish():
     if not sheet_row:
         return jsonify({"error": "sheet_row is required."}), 400
 
-    ws = WorksheetAgent()
-    if not ws.mark_published(int(sheet_row)):
+    ok, audio_ok = _publish_sheet_row(int(sheet_row))
+    if not ok:
         return jsonify({"error": "발행 처리에 실패했습니다. 시트 연결을 확인하세요."}), 500
+    return jsonify({"message": "Published", "audio": audio_ok})
+
+
+def _publish_sheet_row(sheet_row: int) -> tuple[bool, bool]:
+    """시트 상태를 '발행완료'로 바꾸고 TTS 오디오를 생성한다.
+
+    수동 발행(/api/publish)과 자동 발행(Phase 2 훅)의 공용 경로.
+    사이트 노출은 _history의 published 플래그가 기준이므로 여기서 함께 세운다.
+    반환: (발행 성공, 오디오 성공)
+    """
+    ws = WorksheetAgent()
+    if not ws.mark_published(sheet_row):
+        return False, False
 
     target = None
     for entry in _history:
@@ -288,9 +307,8 @@ def api_publish():
             target = entry
 
     # TTS 오디오 생성 — 실패해도 발행은 그대로 진행한다 (오디오만 누락 + 로그/시트 경고)
-    audio_ok = _generate_publish_audio(int(sheet_row), target, ws)
-
-    return jsonify({"message": "Published", "audio": audio_ok})
+    audio_ok = _generate_publish_audio(sheet_row, target, ws)
+    return True, audio_ok
 
 
 def _generate_publish_audio(sheet_row: int, entry: dict | None, ws: WorksheetAgent) -> bool:
@@ -470,8 +488,36 @@ def _run_phase1(sid: str, topic: str, level: Level, section: Section, source_url
         _running.pop(sid, None)
 
 
-def _run_phase2(sid: str, state: dict):
-    """Phase 2 — 교정부터 검수까지 완료."""
+def _auto_publish(review, result: dict, log) -> bool:
+    """자동 발행 훅 — 검수 승인 + 시트 행이 있는 기사만 발행한다.
+
+    발행 실패는 기사 생성을 되돌리지 않는다(생성은 이미 끝난 상태) —
+    로그만 남기고 False를 반환해 사람이 수동 발행할 수 있게 한다.
+    """
+    row = result.get("sheet_row")
+    if review is None or not review.passed:
+        log("[자동발행] 건너뜀 — 검수 승인되지 않은 기사는 발행하지 않습니다")
+        return False
+    if not row:
+        log("[자동발행] 건너뜀 — 시트 저장이 안 돼 발행할 행이 없습니다")
+        return False
+    try:
+        ok, audio_ok = _publish_sheet_row(int(row))
+    except Exception as e:
+        logger.error(f"auto-publish error: {e}")
+        log(f"[자동발행] 실패 ({e}) — 수동 발행이 필요합니다")
+        return False
+    if not ok:
+        log("[자동발행] 실패 — 시트 상태 갱신 불가. 수동 발행이 필요합니다")
+        return False
+    result["published"] = True
+    log("[자동발행] 발행 완료 — 사이트 노출됨" + (
+        "" if audio_ok else " (TTS 오디오 실패 — 사이트는 브라우저 음성으로 폴백)"))
+    return True
+
+
+def _run_phase2(sid: str, state: dict, auto_publish: bool = False):
+    """Phase 2 — 교정부터 검수까지 완료 (auto_publish면 검수 승인 시 발행까지)."""
     try:
         orchestrator: Orchestrator = state["orchestrator"]
         orchestrator._cancel_event = _cancel_events.get(sid)
@@ -494,6 +540,12 @@ def _run_phase2(sid: str, state: dict):
             "result": result,
         }
         _history.append(entry)
+
+        # ── 자동 발행 훅 (기본 꺼짐) ────────────────────────────────
+        # 검수 승인 + 시트 저장 성공한 기사만 발행한다. 실패해도 기사 생성은
+        # 이미 끝난 상태이므로 로그만 남기고 파이프라인은 정상 종료시킨다.
+        if auto_publish:
+            _auto_publish(pkg.review_result, result, _emit_log_for(sid))
 
         socketio.emit("pipeline_done", {"result": result}, to=sid)
     except PipelineCancelled:
