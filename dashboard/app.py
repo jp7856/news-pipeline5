@@ -89,6 +89,9 @@ def api_health():
         "GOOGLE_SHEETS_CREDENTIALS_JSON": check("GOOGLE_SHEETS_CREDENTIALS_JSON"),
         "GOOGLE_SHEET_ID": check("GOOGLE_SHEET_ID"),
         "UNSPLASH_ACCESS_KEY": check("UNSPLASH_ACCESS_KEY"),
+        # 주간 발행 버튼용 — 값 확인 없이 설정 여부만 보려면 이 엔드포인트를 쓴다
+        "ISSUE_ADMIN_KEY": check("ISSUE_ADMIN_KEY"),
+        "GH_DISPATCH_TOKEN": check("GH_DISPATCH_TOKEN"),
     })
 
 
