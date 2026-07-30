@@ -454,8 +454,18 @@
         const res = await fetch("/api/usage");
         _usageData = await res.json();
         const val = document.getElementById("usage-badge-val");
-        if (val) val.textContent =
-          `${_usageData.current_month_krw.toLocaleString()}원 · ${_usageData.current_month_count}건`;
+        const b = _usageData.budget;
+        if (val) {
+          // 예산 대비 표시 — "쓴 금액 / 월 예산 · N%". 80% 넘으면 주의색, 초과는 빨강.
+          val.textContent = b
+            ? `${_usageData.current_month_krw.toLocaleString()} / ${b.krw.toLocaleString()}원 · ${b.used_pct}% · ${_usageData.current_month_count}건`
+            : `${_usageData.current_month_krw.toLocaleString()}원 · ${_usageData.current_month_count}건`;
+          val.style.color = !b ? "#93c5fd"
+            : b.used_pct >= 100 ? "#f87171" : b.used_pct >= 80 ? "#fbbf24" : "#93c5fd";
+          val.title = b
+            ? `월 예산 $${b.usd} (${b.krw.toLocaleString()}원) 기준 · 남은 금액 ${b.remaining_krw.toLocaleString()}원`
+            : "";
+        }
         const tts = _usageData.tts;
         const ttsEl = document.getElementById("usage-badge-tts");
         if (ttsEl && tts) {

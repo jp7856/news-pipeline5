@@ -16,6 +16,11 @@ UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY", "")
 
 MAX_ARTICLES_PER_RUN = int(os.getenv("MAX_ARTICLES_PER_RUN", "10"))
 
+# 월 API 예산 (USD) — 사용자 지정값(2026-07-29). 헤더 배지의 "쓴 금액 / 예산" 표시 기준.
+# 강제 차단이 아니라 표시용 기준선이다(Anthropic 쪽 실제 상한은 Console에서 설정).
+# 원화 환산은 usage_tracker.USD_TO_KRW가 단일 기준.
+MONTHLY_BUDGET_USD = float(os.getenv("MONTHLY_BUDGET_USD", "30"))
+
 # ------------------------------------------------------------------
 # 오케스트레이터 시스템 페르소나 (모든 서브에이전트 공유 — 프롬프트 캐싱)
 # ------------------------------------------------------------------

@@ -414,8 +414,18 @@ def api_usage():
             monthly_cnt[ym] += 1
     current_month = datetime.now().strftime("%Y-%m")
     months_sorted = sorted(monthly_krw.keys())
-    from agents.sub_agents.usage_tracker import tts_usage
+    from agents.sub_agents.usage_tracker import tts_usage, USD_TO_KRW
+    from config import MONTHLY_BUDGET_USD
+    # 월 예산 — 표시용 기준선(강제 차단 아님). 원화 환산은 USD_TO_KRW 단일 기준.
+    budget_krw = round(MONTHLY_BUDGET_USD * USD_TO_KRW)
+    used_krw = int(monthly_krw.get(current_month, 0))
     return jsonify({
+        "budget": {
+            "usd": MONTHLY_BUDGET_USD,
+            "krw": budget_krw,
+            "used_pct": round(used_krw / budget_krw * 100, 1) if budget_krw else 0,
+            "remaining_krw": budget_krw - used_krw,
+        },
         # TTS 월 누계 — 무료 한도(100만 자/월) 대비 % + 볼륨 사용량(연 2.4GB 페이스 확인용)
         "tts": {
             **tts_usage(),
