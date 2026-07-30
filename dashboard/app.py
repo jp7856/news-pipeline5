@@ -47,16 +47,40 @@ _pending: dict[str, dict] = {}
 _history: list[dict] = []
 
 
-def _load_history_from_sheet():
-    """앱 시작 시 구글 시트에서 히스토리를 로드한다."""
+_history_load_lock = threading.Lock()
+
+
+def _load_history_from_sheet(retries: int = 3, delay: float = 5.0):
+    """구글 시트에서 히스토리를 로드한다.
+
+    이 로드가 실패하면 _history가 비고 → /api/published가 빈 배열 →
+    **발행 사이트에 기사가 하나도 안 보인다.** 실제로 재배포 후 그런 일이 있었으므로
+    일시적 실패(시트 API 순간 오류 등)에는 재시도한다.
+    """
     global _history
-    try:
-        ws = WorksheetAgent()
-        _history = ws.load_history()
-        logger.info(f"히스토리 {len(_history)}건 로드 완료")
-    except Exception as e:
-        logger.warning(f"히스토리 로드 실패 (빈 상태로 시작): {e}")
-        _history = []
+    import time
+    with _history_load_lock:
+        for attempt in range(1, retries + 1):
+            try:
+                ws = WorksheetAgent()
+                _history = ws.load_history()
+                logger.info(f"히스토리 {len(_history)}건 로드 완료 (시도 {attempt}/{retries})")
+                return
+            except Exception as e:
+                logger.warning(f"히스토리 로드 실패 {attempt}/{retries}: {e}")
+                if attempt < retries:
+                    time.sleep(delay)
+        logger.error("히스토리 로드를 포기했습니다 — 사이트가 빈 상태로 보입니다. "
+                     "POST /api/reload_history 로 복구하세요.")
+
+
+def _ensure_history():
+    """_history가 비어 있으면 한 번 더 시트에서 읽어 본다 (부팅 로드 실패 대비 안전망).
+
+    사이트가 조용히 비어 보이는 사고를 막는 것이 목적이라, 비어 있을 때만 동작한다.
+    """
+    if not _history:
+        _load_history_from_sheet(retries=1)
 
 
 # Gunicorn/Railway 배포 시에도 앱 시작과 함께 히스토리 로드
@@ -514,6 +538,7 @@ def api_issue_publish():
     if not hmac.compare_digest((data.get("admin_key") or "").strip(), expected):
         return jsonify({"error": "관리자 키가 올바르지 않습니다."}), 403
 
+    _ensure_history()
     monday = _issue_monday(data.get("week", ""))
     build_pdf = bool(data.get("build_pdf", True))
 
@@ -547,6 +572,7 @@ def api_issue_status(job_id):
 @app.route("/api/issue/preview")
 def api_issue_preview():
     """버튼을 누르기 전 확인용 — 이번 주 매체별 기사 수와 발행 예정 수(키 불필요, 읽기 전용)."""
+    _ensure_history()
     monday = _issue_monday(request.args.get("week", ""))
     buckets = _issue_candidates(monday)
     preview = {}
@@ -564,6 +590,7 @@ def api_issue_preview():
 @app.route("/api/published")
 def api_published():
     """발행된 기사만 반환 (발행 뷰어 사이트용)."""
+    _ensure_history()                                  # 부팅 로드 실패 시 사이트가 비지 않게
     published = [
         {
             "created_at": e["created_at"],
