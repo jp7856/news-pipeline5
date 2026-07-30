@@ -443,6 +443,19 @@ def api_usage():
     })
 
 
+@app.route("/api/reload_history", methods=["POST"])
+def api_reload_history():
+    """시트에서 히스토리를 다시 읽는다 (재배포 없이 갱신).
+
+    배치 스크립트처럼 **별도 프로세스**가 시트에 기사를 쓰면 이 앱의 _history에는
+    없으므로 발행(사이트 노출 = published 플래그)이 불가능하다. 그 간극을 메운다.
+    발행 상태는 시트의 상태 컬럼이 원본이므로 재읽기로 유실되지 않는다.
+    """
+    before = len(_history)
+    _load_history_from_sheet()
+    return jsonify({"before": before, "after": len(_history)})
+
+
 @app.route("/api/history")
 def api_history():
     return jsonify(_history)
