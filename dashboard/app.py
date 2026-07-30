@@ -71,6 +71,9 @@ def add_no_cache(response):
     # 발행 뷰어 사이트(GitHub Pages)에서 API 접근 허용
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    # POST(JSON)는 단순 요청이 아니어서 프리플라이트에 Allow-Methods가 필요하다
+    # — 사이트의 '이번 주 발행' 버튼(/api/issue/publish)이 이걸 쓴다.
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
 
 
@@ -378,6 +381,181 @@ def api_audio(article_id: int):
     if not path:
         return jsonify({"error": "Not found"}), 404
     return send_file(path, mimetype="audio/mpeg", conditional=True)
+
+
+# ── 주간 발행(이번 주 발행 버튼) ─────────────────────────────────────
+# 발행 사이트의 '이번 주 발행' 버튼이 호출한다.
+#   1) 이번 주 기사를 매체 규정 수만큼 '발행완료'로 바꿔 사이트에 노출
+#   2) GitHub Actions에 PDF 빌드를 요청 (러너에 크롬이 있어 여기서 굽지 않는다)
+# 규정 수량은 jp-times-paper/config.py의 MEDIA.quota와 같은 값을 유지해야 한다.
+ISSUE_QUOTAS = {"kinder": 4, "kids": 6, "junior": 8, "times": 10}
+ISSUE_SITE_REPO = os.getenv("SITE_REPO", "jp7856/jp-times-site5")
+ISSUE_SITE_URL = os.getenv("SITE_URL", "https://jp7856.github.io/jp-times-site5")
+
+_issue_jobs: dict[str, dict] = {}
+_issue_lock = threading.Lock()
+
+
+def _issue_monday(day_text: str = "") -> str:
+    """기준 날짜 → 그 주 월요일(YYYY-MM-DD). 빈 값이면 오늘 기준."""
+    from datetime import date, timedelta
+    try:
+        base = date.fromisoformat((day_text or "")[:10])
+    except ValueError:
+        base = date.today()
+    return (base - timedelta(days=base.weekday())).isoformat()
+
+
+def _issue_candidates(monday: str) -> dict[str, list[dict]]:
+    """그 주(월~일) 기사를 매체별 최신순으로. 시트 저장에 성공한 기사만 발행 대상."""
+    from datetime import date, timedelta
+    start = date.fromisoformat(monday)
+    end = start + timedelta(days=6)
+
+    buckets: dict[str, list[dict]] = {level: [] for level in ISSUE_QUOTAS}
+    for entry in _history:
+        level = entry.get("level", "")
+        if level not in buckets:
+            continue                                   # 월간지(junior_m) 등은 주간 발행 대상 아님
+        try:
+            day = date.fromisoformat(entry.get("created_at", "")[:10])
+        except ValueError:
+            continue
+        if not (start <= day <= end):
+            continue
+        result = entry.get("result") or {}
+        if not result.get("sheet_row"):
+            continue                                   # 시트에 없으면 발행 상태를 세울 수 없다
+        buckets[level].append(entry)
+    for level in buckets:
+        buckets[level].sort(key=lambda e: e.get("created_at", ""), reverse=True)
+    return buckets
+
+
+def _dispatch_pdf_build(week: str) -> tuple[bool, str]:
+    """GitHub Actions(build-issue)에 PDF 빌드 요청."""
+    import requests
+    token = os.getenv("GH_DISPATCH_TOKEN", "").strip()
+    if not token:
+        return False, "GH_DISPATCH_TOKEN 미설정 — PDF 빌드를 요청할 수 없습니다"
+    try:
+        res = requests.post(
+            f"https://api.github.com/repos/{ISSUE_SITE_REPO}/dispatches",
+            headers={"Authorization": f"Bearer {token}",
+                     "Accept": "application/vnd.github+json"},
+            json={"event_type": "build-issue", "client_payload": {"week": week}},
+            timeout=20)
+    except Exception as e:                              # 네트워크 실패는 발행 자체를 되돌리지 않는다
+        return False, f"요청 실패: {e}"
+    if res.status_code == 204:
+        return True, "PDF 빌드를 요청했습니다"
+    return False, f"GitHub 응답 {res.status_code}: {res.text[:200]}"
+
+
+def _run_issue_job(job_id: str, monday: str, build_pdf: bool) -> None:
+    """백그라운드 — 기사별 발행(시트 + TTS)은 건당 수 초라 요청 안에서 처리하면 타임아웃 난다."""
+    job = _issue_jobs[job_id]
+    buckets = _issue_candidates(monday)
+    job["total"] = sum(
+        max(0, min(ISSUE_QUOTAS[lv], len(items))
+            - len([e for e in items if e.get("result", {}).get("published")]))
+        for lv, items in buckets.items()
+    )
+
+    for level, quota in ISSUE_QUOTAS.items():
+        items = buckets[level]
+        already = [e for e in items if e.get("result", {}).get("published")]
+        pending = [e for e in items if not e.get("result", {}).get("published")]
+        need = max(0, quota - len(already))
+        picked = pending[:need]
+
+        published_now, failed = 0, 0
+        for entry in picked:
+            row = entry["result"]["sheet_row"]
+            try:
+                ok, _audio = _publish_sheet_row(int(row))
+            except Exception:
+                logger.exception("주간 발행 실패 — sheet_row=%s", row)
+                ok = False
+            published_now += 1 if ok else 0
+            failed += 0 if ok else 1
+            with _issue_lock:
+                job["done"] = job.get("done", 0) + 1
+
+        with _issue_lock:
+            job["media"][level] = {
+                "quota": quota, "found": len(items),
+                "already": len(already), "published_now": published_now,
+                "failed": failed, "total_published": len(already) + published_now,
+                "short": max(0, quota - (len(already) + published_now)),
+            }
+
+    if build_pdf:
+        ok, message = _dispatch_pdf_build(monday)
+        with _issue_lock:
+            job["build_dispatched"] = ok
+            job["build_message"] = message
+    with _issue_lock:
+        job["state"] = "done"
+        job["finished_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+@app.route("/api/issue/publish", methods=["POST"])
+def api_issue_publish():
+    """이번 주 발행 — 매체 규정 수만큼 사이트 노출 + PDF 빌드 요청."""
+    import hmac
+    data = request.json or {}
+    expected = os.getenv("ISSUE_ADMIN_KEY", "").strip()
+    if not expected:
+        return jsonify({"error": "서버에 ISSUE_ADMIN_KEY가 설정되지 않았습니다."}), 503
+    if not hmac.compare_digest((data.get("admin_key") or "").strip(), expected):
+        return jsonify({"error": "관리자 키가 올바르지 않습니다."}), 403
+
+    monday = _issue_monday(data.get("week", ""))
+    build_pdf = bool(data.get("build_pdf", True))
+
+    with _issue_lock:
+        running = [j for j in _issue_jobs.values() if j.get("state") == "running"]
+        if running:
+            return jsonify({"error": "이미 발행이 진행 중입니다.",
+                            "job_id": running[0]["job_id"]}), 409
+        job_id = f"issue-{monday}-{datetime.now().strftime('%H%M%S')}"
+        _issue_jobs[job_id] = {
+            "job_id": job_id, "state": "running", "week": monday,
+            "started_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "media": {}, "done": 0, "total": 0,
+            "build_dispatched": None, "build_message": "",
+            "site_url": f"{ISSUE_SITE_URL}/#issue-{monday}",
+        }
+
+    threading.Thread(target=_run_issue_job, args=(job_id, monday, build_pdf),
+                     daemon=True).start()
+    return jsonify(_issue_jobs[job_id]), 202
+
+
+@app.route("/api/issue/status/<job_id>")
+def api_issue_status(job_id):
+    job = _issue_jobs.get(job_id)
+    if not job:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(job)
+
+
+@app.route("/api/issue/preview")
+def api_issue_preview():
+    """버튼을 누르기 전 확인용 — 이번 주 매체별 기사 수와 발행 예정 수(키 불필요, 읽기 전용)."""
+    monday = _issue_monday(request.args.get("week", ""))
+    buckets = _issue_candidates(monday)
+    preview = {}
+    for level, quota in ISSUE_QUOTAS.items():
+        items = buckets[level]
+        already = len([e for e in items if e.get("result", {}).get("published")])
+        preview[level] = {
+            "quota": quota, "found": len(items), "already": already,
+            "will_publish": max(0, min(quota, len(items)) - already),
+            "short": max(0, quota - len(items)),
+        }
+    return jsonify({"week": monday, "media": preview})
 
 
 @app.route("/api/published")
