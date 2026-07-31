@@ -416,8 +416,8 @@ def api_audio(article_id: int):
 #   2) GitHub Actions에 PDF 빌드를 요청 (러너에 크롬이 있어 여기서 굽지 않는다)
 # 규정 수량은 jp-times-paper/config.py의 MEDIA.quota와 같은 값을 유지해야 한다.
 ISSUE_QUOTAS = {"kinder": 4, "kids": 6, "junior": 8, "times": 10}
-ISSUE_SITE_REPO = os.getenv("SITE_REPO", "jp7856/jp-times-site5")
-ISSUE_SITE_URL = os.getenv("SITE_URL", "https://jp7856.github.io/jp-times-site5")
+ISSUE_SITE_REPO = os.getenv("SITE_REPO", "jp7856/top-news-weekly")
+ISSUE_SITE_URL = os.getenv("SITE_URL", "https://jp7856.github.io/top-news-weekly")
 
 _issue_jobs: dict[str, dict] = {}
 _issue_lock = threading.Lock()
