@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Notion__notion-create-pages",
+      "Read(//c/Users/jp/work/edu-bid-monitor/**)",
+      "Bash(./.venv/Scripts/python.exe -c \"import json;d=json.load\\(open\\('data.json',encoding='utf-8'\\)\\);print\\('updated_at:',d.get\\('updated_at'\\)\\);print\\('period:',d.get\\('period'\\)\\);print\\('total:',d.get\\('total'\\)\\)\")",
+      "Bash(./.venv/Scripts/python.exe crawler.py)"
+    ]
+  }
+}
