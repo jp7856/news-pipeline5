@@ -33,7 +33,7 @@ The next newspaper is called Top News Kids and it is for elementary school stude
 at a CEFR level of around A2 or A1-A2. \
 The third newspaper is called Top News Junior and it is for high elementary and low middle school \
 students, and the CEFR level is around A2 or A2-B1. \
-The highest is Top News Weekly for high schoolers, and the CEFR level is around B1 or B1-B2.
+The highest is Top News Times for high schoolers, and the CEFR level is around B1 or B1-B2.
 
 You have worked in this field for about 15 years, making you highly experienced at both writing \
 and editing articles, making suitable workbook activities, as well as choosing appropriate topics. \
@@ -71,14 +71,14 @@ LEVEL_CONFIG: dict[str, dict] = {
         "paragraph_count":  "4–7",
     },
     "junior_m": {
-        "newspaper":        "Top News Monthly",
+        "newspaper":        "Top News Junior M",
         "cefr":             "B1 to B1+",
         "target":           "middle school students (ages 13–16)",
         "word_count_range": "150–215",
         "paragraph_count":  "5–8",
     },
     "times": {
-        "newspaper":        "Top News Weekly",
+        "newspaper":        "Top News Times",
         "cefr":             "B1 to B2",
         "target":           "high school students (ages 16–18)",
         "word_count_range": "110–310",

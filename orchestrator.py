@@ -265,7 +265,7 @@ def print_result(pkg: ContentPackage) -> None:
     sep = "-" * 60
 
     print(f"\n{'=' * 60}")
-    print(f"  Top News Weekly Content Package")
+    print(f"  Top News Content Package")
     print(f"  Topic   : {pkg.topic}")
     print(f"  Level   : {pkg.level.value}")
     print(f"  Section : {pkg.section.value}")

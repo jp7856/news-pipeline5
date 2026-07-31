@@ -41,7 +41,7 @@ for lv in (Level.KINDER, Level.KIDS, Level.JUNIOR, Level.TIMES):
     assert agent._guidelines, f"{lv.value} 지침이 비어 있음"
     assert "Sub-level" in agent._guidelines and "<!--" not in agent._guidelines
 agent_m = create_agent1(Level.JUNIOR_M)
-assert "Top News Monthly" in agent_m._guidelines, "JUNIOR M 지침 로드돼야 함"
+assert "Top News Junior M" in agent_m._guidelines, "JUNIOR M 지침 로드돼야 함"
 print("guideline content OK (5개 매체 전부 로드)")
 
 # 4) 지침 본문이 있으면 로드되고 주석은 제거됨

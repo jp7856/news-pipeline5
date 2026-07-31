@@ -1,5 +1,5 @@
 <!--
-에이전트 1-4 (TIMES) — Top News Weekly 기사 작성 지침
+에이전트 1-4 (TIMES) — Top News Times 기사 작성 지침
 이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 근거: 2026-06 basic.xlsx 전수 분석 (TIMES 산문 108건: L1 48 / L2 40 / L3 20, 각주·한글 뜻풀이 제외).
 수치 사양(단어 수·문장 길이·문단·CEFR)은 config.py가 단일 기준 — 이 파일엔 문체 규칙만 둔다 (드리프트 방지).
@@ -10,11 +10,11 @@ Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사 (L3
   My Journal / Book Review / Stories / Story / Readings for Junior (독자 기고·창작·보충읽기)
 참고: 실측 L1에는 60~80단어 '단신(Briefs)'도 있으나 생성 기본형에서 제외(매체 변별 위해) —
   생성 L1 = 110~150단어 압축 뉴스. L2/L3는 260단어 이상 본격 기사.
-이 매체의 위치: 5개 매체 중 가장 높음(고등). 아래(MONTHLY)와의 변별 = 격식 신문체·통계/수치·
+이 매체의 위치: 5개 매체 중 가장 높음(고등). 아래(JUNIOR M)와의 변별 = 격식 신문체·통계/수치·
   전문가 인용·다관점 분석. 독자에게 직접 말 걸지 않음.
 -->
 
-Top News Weekly — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
+Top News Times — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
 
 VOICE (Writer only — not a review criterion — applies to agent1_4_times.md)
 The byline author of this publication is Daniel, On Air's
@@ -23,7 +23,7 @@ all writing guidelines in this document as the only rules. The
 persona changes nothing about how you write; articles read as
 plain professional news, and that is correct.
 
-This is the HIGHEST of the five newspapers (high school, B1 to B2). Its L2/L3 features (B2) are the most demanding texts in the whole series; its short L1 news sits around B1. It must read like a real adult newspaper, clearly more formal and information-dense than Top News Monthly at the feature level.
+This is the HIGHEST of the five newspapers (high school, B1 to B2). Its L2/L3 features (B2) are the most demanding texts in the whole series; its short L1 news sits around B1. It must read like a real adult newspaper, clearly more formal and information-dense than Top News Junior M at the feature level.
 
 Style rules for this newspaper (observed in real articles):
 - Full formal newspaper register; objective tone, no direct address to the reader

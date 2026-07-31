@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 
-영어 교육 신문(Top News Kinder/Kids/Junior/Weekly/Monthly) 콘텐츠 자동 생성 파이프라인.
+영어 교육 신문(Top News Kinder/Kids/Junior/Junior M/Times) 콘텐츠 자동 생성 파이프라인.
 토픽 입력 → 기사 초안(표절 통과까지 자동 재작성) → AI 대화 수정 → 전체 제작 → 검수 → 발행 → 공개 사이트 게시.
 **에이전트 구성의 단일 기준은 ORCHESTRATION.md** — 에이전트 1은 신문별 1-1~1-5로 분리됨.
 
@@ -61,7 +61,7 @@ Generate → 레벨로 에이전트 1-1~1-5 라우팅 (create_agent1, 지침: ag
 ```
 ORCHESTRATION.md           # 에이전트 구성·지침 작성 규칙의 단일 기준
 orchestrator.py            # run_phase1/run_phase2, PipelineCancelled
-agents/level_agents.py     # 에이전트 1-1(KINDER)~1-5(MONTHLY) + create_agent1 팩토리
+agents/level_agents.py     # 에이전트 1-1(KINDER)~1-5(JUNIOR M) + create_agent1 팩토리
 agents/guidelines/         # 신문별 작성 지침 (Writer 프롬프트 주입) — 5개 매체 전부 basic.xlsx 전수 분석 기준 입고 (JUNIOR M 포함)
 agents/content_producer.py # 에이전트 1 공통 베이스 — produce_article(표절 3회 루프) / produce_extras
 agents/sub_agents/

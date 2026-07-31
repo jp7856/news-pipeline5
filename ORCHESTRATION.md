@@ -41,8 +41,8 @@
 | **에이전트 1-1** | `kinder` | Top News Kinder (KINDER) | `agents/guidelines/agent1_1_kinder.md` |
 | **에이전트 1-2** | `kids` | Top News Kids (KIDS) | `agents/guidelines/agent1_2_kids.md` |
 | **에이전트 1-3** | `junior` | Top News Junior (JUNIOR) | `agents/guidelines/agent1_3_junior.md` |
-| **에이전트 1-4** | `times` | Top News Weekly (TIMES) | `agents/guidelines/agent1_4_times.md` |
-| **에이전트 1-5** | `junior_m` | Top News Monthly (JUNIOR M) | `agents/guidelines/agent1_5_junior_m.md` |
+| **에이전트 1-4** | `times` | Top News Times (TIMES) | `agents/guidelines/agent1_4_times.md` |
+| **에이전트 1-5** | `junior_m` | Top News Junior M (JUNIOR M) | `agents/guidelines/agent1_5_junior_m.md` |
 
 - 구현: `agents/level_agents.py` — 모두 `ContentProducerAgent`를 상속한 얇은 서브클래스.
   공통 파이프라인(출처 검색 → 작성 → 표절 루프 → 교정 → 크로스워드/워크북)은 동일하고,

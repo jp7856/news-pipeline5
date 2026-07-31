@@ -129,7 +129,7 @@ def index():
         """매체 선택 라벨 — **제호(config)에서 파생**한다.
 
         level 코드로 만들면(JUNIOR_M → "JUNIOR M") 개명을 따라가지 못한다.
-        'Top News Monthly' → 'MONTHLY', 'Top News Weekly' → 'WEEKLY'.
+        'Top News Junior M' → 'JUNIOR M', 'Top News Times' → 'TIMES'.
         """
         name = LEVEL_CONFIG[value]["newspaper"]
         short = name.replace("Top News", "").strip()

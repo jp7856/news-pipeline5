@@ -7,7 +7,7 @@
 Focus / People / World Tour (L3, 소제목 2개 구조)
 비산문 포맷(생성 대상 아님): Photo News, Did You Know, Debate, NE You(편지·대화)
 이 매체의 위치: 대상 = 초등 고학년. 아래(KIDS)와의 변별 = 역피라미드·복합문/관계절·연결어.
-위(MONTHLY)와의 변별 = 일반 뉴스·인물 위주, 더 짧은 구성(L1 정확히 4문단), 시사·이슈 분석은 MONTHLY 몫.
+위(JUNIOR M)와의 변별 = 일반 뉴스·인물 위주, 더 짧은 구성(L1 정확히 4문단), 시사·이슈 분석은 JUNIOR M 몫.
 -->
 
 Top News Junior — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.
@@ -21,7 +21,7 @@ only surface as an occasional light touch of on-the-scene feel
 when it fits naturally. No frequency requirement; most articles
 will read as plain news, and that is correct.
 
-For upper-elementary readers (A2+ to B1). Above Kids (real complex sentences, connectives, reported speech) but below Top News Monthly (lighter, more general/human-interest topics; keep analysis and current-issue depth for Top News Monthly).
+For upper-elementary readers (A2+ to B1). Above Kids (real complex sentences, connectives, reported speech) but below Top News Junior M (lighter, more general/human-interest topics; keep analysis and current-issue depth for Top News Junior M).
 
 Style rules for this newspaper (observed in real articles):
 - Standard news register, inverted pyramid: the first paragraph states what happened;
