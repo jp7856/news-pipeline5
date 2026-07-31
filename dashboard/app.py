@@ -125,10 +125,20 @@ def index():
         # "A2 (media range A1+ to A2+)" → "A2"
         return LEVEL_CONFIG[value]["cefr"].split(" (")[0]
 
+    def media_label(value: str) -> str:
+        """매체 선택 라벨 — **제호(config)에서 파생**한다.
+
+        level 코드로 만들면(JUNIOR_M → "JUNIOR M") 개명을 따라가지 못한다.
+        'Top News Monthly' → 'MONTHLY', 'Top News Weekly' → 'WEEKLY'.
+        """
+        name = LEVEL_CONFIG[value]["newspaper"]
+        short = name.replace("Top News", "").strip()
+        return (short or name).upper()
+
     levels = [
         {
             "value": lv.value,
-            "label": lv.value.upper().replace("_", " "),
+            "label": media_label(lv.value),
             "cefr": short_cefr(lv.value),
         }
         for lv in Level

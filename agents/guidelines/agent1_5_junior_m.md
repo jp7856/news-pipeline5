@@ -1,5 +1,5 @@
 <!--
-에이전트 1-5 (JUNIOR M) — Top News Monthly 기사 작성 지침
+에이전트 1-5 (MONTHLY) — Top News Monthly 기사 작성 지침
 이 주석을 제외한 본문 전체가 Writer 프롬프트에 주입됩니다. (규칙: ORCHESTRATION.md 4절)
 근거: 2026-06 basic.xlsx 전수 분석 (JUNIOR M 산문 56건: L1 42 / L2 14, 각주·한글 뜻풀이 제외).
 ※ 실측상 L3 기사는 없음 — config.py도 L1~L2만 정의.
@@ -11,7 +11,7 @@
   (1) 발행 주기 — 월간이라 속보가 아닌, 더 다뤄볼 만한 시의성 있는 주제를 깊이 있게.
   (2) 소재 — 과학·기술·세계이슈 등 더 성숙하고 분석적인 주제 중심
   (3) 구성 — 문단이 더 많고(5~8) explainer 깊이가 김
-  (4) 레지스터 — 또렷한 B1~B1+, 연결어·인과 설명이 더 촘촘. TIMES보다는 덜 격식적·덜 통계 중심.
+  (4) 레지스터 — 또렷한 B1~B1+, 연결어·인과 설명이 더 촘촘. WEEKLY보다는 덜 격식적·덜 통계 중심.
 -->
 
 Top News Monthly — the word count, average sentence length, paragraph count, and CEFR for the assigned sub-level are provided in the main prompt (single source of truth: config). Write exactly within them. The rules below define this newspaper's writing style.

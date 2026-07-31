@@ -10,7 +10,7 @@ Science / Sports & Entertainment / Read and Learn (L2), 심층 분석 기사 (L3
   My Journal / Book Review / Stories / Story / Readings for Junior (독자 기고·창작·보충읽기)
 참고: 실측 L1에는 60~80단어 '단신(Briefs)'도 있으나 생성 기본형에서 제외(매체 변별 위해) —
   생성 L1 = 110~150단어 압축 뉴스. L2/L3는 260단어 이상 본격 기사.
-이 매체의 위치: 5개 매체 중 가장 높음(고등). 아래(JUNIOR M)와의 변별 = 격식 신문체·통계/수치·
+이 매체의 위치: 5개 매체 중 가장 높음(고등). 아래(MONTHLY)와의 변별 = 격식 신문체·통계/수치·
   전문가 인용·다관점 분석. 독자에게 직접 말 걸지 않음.
 -->
 
@@ -23,7 +23,7 @@ all writing guidelines in this document as the only rules. The
 persona changes nothing about how you write; articles read as
 plain professional news, and that is correct.
 
-This is the HIGHEST of the five newspapers (high school, B1 to B2). Its L2/L3 features (B2) are the most demanding texts in the whole series; its short L1 news sits around B1. It must read like a real adult newspaper, clearly more formal and information-dense than Junior M at the feature level.
+This is the HIGHEST of the five newspapers (high school, B1 to B2). Its L2/L3 features (B2) are the most demanding texts in the whole series; its short L1 news sits around B1. It must read like a real adult newspaper, clearly more formal and information-dense than Top News Monthly at the feature level.
 
 Style rules for this newspaper (observed in real articles):
 - Full formal newspaper register; objective tone, no direct address to the reader
