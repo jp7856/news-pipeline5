@@ -12,7 +12,7 @@
 - **v5 Railway**: https://web-production-0763d.up.railway.app
 - **v4 (이전)**: https://github.com/jp7856/news-pipeline4 / https://web-production-8adb9.up.railway.app
 - **발행 사이트 (현재)**: https://jp7856.github.io/top-news-weekly/ (레포: jp7856/top-news-weekly, Railway /api/published 호출)
-- **구 발행 사이트 (연결 해제)**: https://jp7856.github.io/ne-times-site/ — 더 이상 업데이트 안 됨, 빈 화면
+- **구 발행 사이트 (연결 해제)**: 예전 Pages 사이트 — 더 이상 업데이트 안 됨, 빈 화면
 - 스택: Python 3.13, Flask + Flask-SocketIO, Claude Sonnet 4.6, Railway 자동 배포, GitHub Pages
 
 ## 파이프라인 흐름
@@ -99,7 +99,7 @@ dashboard/templates/index.html  # 9탭 + continue-bar(채팅) + 발행 버튼 + 
 - 구글 서비스 계정 키는 "키 추가→새 키 만들기"로만 발급됨 (재다운로드 불가)
 - 시트는 v3와 v4가 같은 것을 공유 중 — 분리 필요 시 새 시트 + 서비스 계정 공유 + SHEET_ID 교체
 - top-news-weekly는 Railway /api/published를 직접 호출 — articles.json 정적 파일 방식 아님
-- ne-times-site(구 사이트)는 의도적으로 연결 해제됨 — 복원하지 말 것
+- 구 Pages 사이트는 의도적으로 연결 해제됨 — 복원하지 말 것 (현재 발행 사이트는 top-news-weekly)
 - ⚠ Phase 2는 본문을 절대 바꾸지 않는다 (2026-07-07 설계 확정): 미리보기 승인본 = 최종본.
   Editor 자동 반영·검수 거부 자동 재작성을 되살리지 말 것. 거부는 hard 게이트만, LLM 지적은 검수경고.
 - ⚠ run_vocab_review.py / vocab_monitor.py / analytical_seed.py 등 어휘 리뷰 계열 수정 시:
