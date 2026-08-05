@@ -1,8 +1,24 @@
-"""공통 유틸리티 — Claude JSON 응답 파싱, sl 재작성 조준점 계산."""
+"""공통 유틸리티 — Claude JSON 응답 파싱, sl 재작성 조준점 계산, KST 시각."""
 
 import json
 import re
+from datetime import datetime, timedelta, timezone
 from typing import Callable
+
+# 발행 기준 시간대 = 한국 표준시.
+# Railway 서버는 UTC로 돌아서 datetime.now()를 그대로 쓰면 KST 월요일 0~9시에 만든 기사가
+# '지난 주'로 기록되고, 주간 신문(월~일)에서 지난 호로 밀린다. 시각은 전부 이 함수로 찍는다.
+KST = timezone(timedelta(hours=9))
+
+
+def kst_now() -> datetime:
+    """한국 시각(naive) — 저장 포맷은 기존과 동일한 'YYYY-MM-DD HH:MM:SS' 유지."""
+    return datetime.now(timezone.utc).astimezone(KST).replace(tzinfo=None)
+
+
+def kst_today():
+    """한국 날짜 — 주 경계(월~일) 계산의 기준."""
+    return kst_now().date()
 
 
 def call_claude_json(

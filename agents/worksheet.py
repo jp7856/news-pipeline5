@@ -10,6 +10,7 @@ from google.oauth2.service_account import Credentials
 
 from config import GOOGLE_SHEETS_CREDENTIALS_JSON, GOOGLE_SHEET_ID
 from models import ArticleStatus, ContentPackage
+from agents.sub_agents.utils import kst_now
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +72,9 @@ class WorksheetAgent:
 
     def mark_published(self, row: int) -> bool:
         """해당 행의 상태를 '발행완료'로 변경한다."""
-        from datetime import datetime
         try:
             sheet = self._get_sheet()
-            stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+            stamp = kst_now().strftime("%Y-%m-%d %H:%M")
             sheet.update_cell(row, STATUS_COL, f"발행완료 ({stamp})")
             self._log(f"[Publish] {row}행 발행 완료")
             return True
@@ -237,7 +237,8 @@ class WorksheetAgent:
         wb2 = wb_json(pkg.workbook_sets[1]) if len(pkg.workbook_sets) > 1 else ""
 
         return [
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # 시트 '생성일시' — 주간 신문의 주 경계(월~일) 판정 기준이라 반드시 KST
+            kst_now().strftime("%Y-%m-%d %H:%M:%S"),
             pkg.level.value,
             pkg.section.value,
             pkg.topic,

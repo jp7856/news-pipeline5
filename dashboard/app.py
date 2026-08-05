@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import LEVEL_CONFIG, SUBLEVEL_CONFIG, DEFAULT_SUBLEVEL
 from orchestrator import Orchestrator, PipelineCancelled
 from agents.worksheet import WorksheetAgent, BYLINE_AUTHORS
+from agents.sub_agents.utils import kst_now, kst_today
 from agents.sub_agents import audio_storage
 from models import ContentPackage, Level, Section
 
@@ -439,7 +440,7 @@ def _issue_monday(day_text: str = "") -> str:
     try:
         base = date.fromisoformat((day_text or "")[:10])
     except ValueError:
-        base = date.today()
+        base = kst_today()      # 서버는 UTC — 주 경계는 KST 기준으로 판정한다
     return (base - timedelta(days=base.weekday())).isoformat()
 
 
@@ -773,7 +774,8 @@ def _run_phase2(sid: str, state: dict, auto_publish: bool = False):
 
         entry = {
             "idx": len(_history),
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            # 시트 '생성일시'와 같은 기준(KST)이어야 주간 신문의 호 분류가 어긋나지 않는다
+            "created_at": kst_now().strftime("%Y-%m-%d %H:%M"),
             "topic": state["topic"],
             "level": state["level"].value,
             "section": state["section"].value,
